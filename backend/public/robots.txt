@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /api/
+Disallow: /sanctum/
+Allow: /
+
+Sitemap: https://o-229.com/sitemap.xml

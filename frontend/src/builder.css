@@ -1,0 +1,128 @@
+/* =========================================================================
+   🏗️ Builder Styles — Premium Drag & Drop UI
+   ========================================================================= */
+
+.builder-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  height: calc(100vh - 64px);
+  background: #fdfdfd;
+}
+
+.builder-sidebar {
+  background: white;
+  border-right: 1px solid rgba(0,0,0,0.05);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.builder-canvas {
+  background: #f3f4f6;
+  padding: 3rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.builder-properties {
+  background: white;
+  border-left: 1px solid rgba(0,0,0,0.05);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+/* Draggable Items */
+.draggable-item {
+  background: white;
+  border: 2px solid transparent;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+  cursor: grab;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.draggable-item:hover {
+  border-color: var(--primary-light);
+  transform: translateX(5px);
+}
+
+/* Canvas Blocks */
+.canvas-block {
+  width: 100%;
+  max-width: 800px;
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid transparent;
+  position: relative;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-md);
+}
+
+.canvas-block:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.canvas-block-active {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 5px rgba(30, 64, 175, 0.1) !important;
+}
+
+.block-actions {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.canvas-block:hover .block-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.action-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Drag Overlay Styling */
+.drag-overlay-active {
+  background: white;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  border: 2px solid var(--primary);
+  opacity: 0.9;
+  cursor: grabbing;
+}
+
+.drop-placeholder {
+  height: 80px;
+  width: 100%;
+  border: 2px dashed rgba(30, 64, 175, 0.3);
+  border-radius: var(--radius-xl);
+  background: rgba(30, 64, 175, 0.02);
+}

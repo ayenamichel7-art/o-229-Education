@@ -1,0 +1,59 @@
+# ─── SECRETS / ENVIRONMENT FILES ───────────────
+# NEVER commit any .env files with real credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ─── OS ────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDE ───────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*.code-workspace
+
+# ─── Docker ────────────────────────────────────
+docker/volumes/
+
+# ─── Backend (Laravel) ─────────────────────────
+backend/vendor/
+backend/node_modules/
+backend/storage/*.key
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+backend/bootstrap/cache/*
+backend/.phpunit.result.cache
+backend/.phpunit.cache/
+
+# ─── Frontend (React) ─────────────────────────
+frontend/node_modules/
+frontend/dist/
+
+# ─── Mobile App (Flutter) ─────────────────────
+mobile_app/build/
+mobile_app/.dart_tool/
+mobile_app/.idea/
+mobile_app/.flutter-plugins-dependencies
+
+# ─── Logs ──────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── Debug / Temp outputs ────────────────────
+last_error.txt
+output.txt
+backend/debug_autoload.php
+backend/create_bucket.php
+
+# ─── Compiled / Lock files (optional) ────────
+# backend/composer.lock  # Uncomment if you don't want to track
