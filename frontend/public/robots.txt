@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemaps can be dynamic depending on endpoints or static
+# Sitemap: https://o-229.com/sitemap.xml

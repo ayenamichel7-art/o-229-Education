@@ -42,6 +42,12 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'settings',
             'subscription_plan',
             'subscription_expires_at',
+            'google_place_id',
+            'latitude',
+            'longitude',
+            'google_maps_url',
+            'has_google_business',
+            'google_business_verified',
         ];
     }
 
@@ -56,15 +62,15 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function getBrandingConfig(): array
     {
         return [
-            'school_name'     => $this->name,
+            'name'            => $this->name,
             'tagline'         => $this->tagline,
-            'logo_url'        => $this->logo_url,
-            'favicon_url'     => $this->favicon_url,
-            'hero_image_url'  => $this->hero_image_url,
-            'primary_color'   => $this->primary_color ?? '#1E40AF',
-            'secondary_color' => $this->secondary_color ?? '#F59E0B',
-            'accent_color'    => $this->accent_color ?? '#10B981',
-            'font_family'     => $this->font_family ?? 'Inter',
+            'logoUrl'         => $this->logo_url,
+            'faviconUrl'      => $this->favicon_url,
+            'heroImageUrl'    => $this->hero_image_url,
+            'primaryColor'    => $this->primary_color ?? '#1E40AF',
+            'secondaryColor'  => $this->secondary_color ?? '#F59E0B',
+            'accentColor'     => $this->accent_color ?? '#10B981',
+            'fontFamily'      => $this->font_family ?? 'Inter',
             'currency'        => $this->currency ?? 'XOF',
             'features'        => [
                 'finance'    => $this->hasFeature('finance'),
@@ -73,8 +79,25 @@ class Tenant extends BaseTenant implements TenantWithDatabase
                 'mobile_app' => $this->hasFeature('mobile_app'),
                 'reports'    => $this->hasFeature('reports'),
                 'audit'      => $this->hasFeature('audit'),
+            ],
+            'location'        => [
+                'address'         => $this->address,
+                'google_place_id' => $this->google_place_id,
+                'latitude'        => $this->latitude,
+                'longitude'       => $this->longitude,
+                'maps_url'        => $this->google_maps_url,
+                'is_verified'     => (bool) $this->google_business_verified,
             ]
         ];
+    }
+
+    /**
+     * Check if Google Business is configured.
+     * Used for forcing schools to create their profile.
+     */
+    public function isGoogleBusinessConfigured(): bool
+    {
+        return !empty($this->google_place_id) || !empty($this->google_maps_url);
     }
 
     public function hasFeature(string $feature): bool

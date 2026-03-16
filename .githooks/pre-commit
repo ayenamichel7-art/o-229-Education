@@ -1,0 +1,27 @@
+#!/bin/sh
+# ---------------------------------------------------------
+# Git Pre-commit Hook: Gitleaks Secret Scanner
+# ---------------------------------------------------------
+
+echo "🛡️  Démarrage du scan de sécurité Gitleaks..."
+
+# Check if gitleaks is installed
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "⚠️  Gitleaks n'est pas installé sur ce système."
+    echo "⚠️  Téléchargez-le depuis: https://github.com/gitleaks/gitleaks"
+    echo "⚠️  Validation contournée."
+    exit 0
+fi
+
+# Run Gitleaks on staged files
+gitleaks protect -v --staged
+GITLEAKS_EXIT_CODE=$?
+
+if [ $GITLEAKS_EXIT_CODE -ne 0 ]; then
+    echo "❌ ❌ ❌ DANGER : Gitleaks a détecté d'éventuels secrets dans votre code !"
+    echo "Commit bloqué. Veuillez retirer les identifiants avant de commiter."
+    exit 1
+fi
+
+echo "✅ Succès: Aucun secret détecté dans le commit."
+exit 0

@@ -1,0 +1,140 @@
+name: o-229 CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PHP_VERSION: '8.4'
+  NODE_VERSION: '20'
+
+jobs:
+  # ─── Backend Tests & Security ─────────────────────────
+  backend:
+    name: Backend (Laravel)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: o229_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo_pgsql, redis, mbstring, zip, gd, intl, bcmath
+          coverage: xdebug
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Run PHPStan (Static Analysis)
+        run: vendor/bin/phpstan analyse --memory-limit=512M
+        continue-on-error: true
+
+      - name: Run Pest Tests
+        run: vendor/bin/pest --parallel
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: o229_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: testing
+          REDIS_HOST: 127.0.0.1
+
+      - name: Composer Security Audit
+        run: composer audit
+
+  # ─── Frontend Lint & Build ────────────────────────────
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: ESLint Check
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build Production Bundle
+        run: npm run build
+
+      - name: NPM Security Audit
+        run: npm audit --production
+        continue-on-error: true
+
+  # ─── Security Scanning ────────────────────────────────
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Check .env files are not committed
+        run: |
+          if git ls-files --error-unmatch .env 2>/dev/null || git ls-files --error-unmatch backend/.env 2>/dev/null; then
+            echo "::error::.env files are tracked by Git! Remove them immediately."
+            exit 1
+          fi
+          echo "✅ No .env files tracked"

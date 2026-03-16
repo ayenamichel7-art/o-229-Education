@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { TenantProvider } from './providers/TenantProvider';
 import { RequireAuth } from './components/RequireAuth';
 import { PublicLayout } from './layouts/PublicLayout';
@@ -14,12 +15,14 @@ import { AuditTrail } from './pages/AuditTrail';
 import PageBuilder from './pages/builder/PageBuilder';
 import FormBuilder from './pages/builder/FormBuilder';
 import { MobileAppPage } from './pages/MobileApp';
+import { SettingsPage } from './pages/Settings';
 
 function App() {
   return (
-    <TenantProvider>
-      <BrowserRouter>
-        <Routes>
+    <HelmetProvider>
+      <TenantProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public Vitrine Routes */}
           <Route path="/" element={<PublicLayout />}>
             <Route index element={<PublicDisplay />} />
@@ -39,10 +42,12 @@ function App() {
             <Route path="vitrine-builder" element={<PageBuilder />} />
             <Route path="form-builder" element={<FormBuilder />} />
             <Route path="mobile-app" element={<MobileAppPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
     </TenantProvider>
+  </HelmetProvider>
   );
 }
 

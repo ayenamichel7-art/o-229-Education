@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\VitrineController;
+use App\Http\Controllers\Api\V1\TenantSettingsController;
 // use App\Http\Middleware\IdentifyTenant; // Suppressed for stancl/tenancy
 use Illuminate\Support\Facades\Route;
 
@@ -105,6 +106,13 @@ Route::prefix('v1')
             Route::get('/stats', [AuditLogController::class, 'stats'])->name('audit-logs.stats');
             Route::get('/{id}', [AuditLogController::class, 'show'])->name('audit-logs.show');
         });
+
+        // ─── Tenant Settings ────────────────────────────
+        Route::post('/tenant/location', [TenantSettingsController::class, 'updateLocation'])
+            ->name('tenant.location.update');
+        Route::get('/proxy/google-places', [TenantSettingsController::class, 'googlePlacesProxy'])
+            ->name('proxy.google-places');
     });
+
 
 

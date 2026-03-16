@@ -3,29 +3,30 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\FormTemplate;
+use App\Models\FormSubmission;
 use Illuminate\Http\Request;
 
 class FormTemplateController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of active form templates.
      */
     public function index()
     {
-        $templates = \App\Models\FormTemplate::where('is_active', true)->get();
+        $templates = FormTemplate::where('is_active', true)->get();
         return response()->json(['data' => $templates]);
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified resource with fields grouped by section.
      */
     public function show(string $id)
     {
-        $template = \App\Models\FormTemplate::with(['fields' => function($query) {
+        $template = FormTemplate::with(['fields' => function($query) {
             $query->orderBy('order');
         }])->findOrFail($id);
 
-        // Group fields by section for cleaner frontend rendering
         $sections = $template->fields->groupBy('section');
 
         return response()->json([
@@ -47,19 +48,46 @@ class FormTemplateController extends Controller
     }
 
     /**
-     * Submit form data.
+     * Submit form data with dynamic validation.
      */
     public function submit(Request $request, string $id)
     {
-        $template = \App\Models\FormTemplate::findOrFail($id);
+        $template = FormTemplate::with('fields')->findOrFail($id);
+
+        // Build dynamic validation rules from template fields
+        $rules = [];
+        foreach ($template->fields as $field) {
+            $fieldRules = [];
+            
+            if ($field->is_required) {
+                $fieldRules[] = 'required';
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            // Type-based rules
+            match ($field->type) {
+                'email'  => $fieldRules[] = 'email',
+                'number' => $fieldRules[] = 'numeric',
+                'date'   => $fieldRules[] = 'date',
+                'phone'  => $fieldRules[] = 'string|max:20',
+                'file'   => $fieldRules[] = 'file|max:5120', // 5MB max
+                default  => $fieldRules[] = 'string|max:1000',
+            };
+
+            $rules["fields.{$field->name}"] = $fieldRules;
+        }
+
+        if (!empty($rules)) {
+            $request->validate($rules);
+        }
         
-        // Basic validation could be dynamic here based on $template->fields
-        
-        $submission = \App\Models\FormSubmission::create([
+        $submission = FormSubmission::create([
             'tenant_id' => resolve('current_tenant_id'),
             'form_template_id' => $template->id,
-            'data' => $request->all(),
-            'status' => 'pending'
+            'data' => $request->input('fields', $request->all()),
+            'status' => 'pending',
+            'ip_address' => $request->ip(),
         ]);
 
         return response()->json([

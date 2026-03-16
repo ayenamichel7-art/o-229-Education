@@ -8,6 +8,14 @@ interface TenantConfig {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  location?: {
+    address: string | null;
+    google_place_id: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    maps_url: string | null;
+    is_verified: boolean;
+  };
 }
 
 interface TenantContextProps {
@@ -33,7 +41,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const fetchTenantConfig = async () => {
       try {
         const response = await apiClient.get('/config');
-        const data = response.data;
+        const data = response.data.data;
         
         setTenant(data);
         

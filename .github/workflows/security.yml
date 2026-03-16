@@ -1,0 +1,31 @@
+name: Security Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  gitleaks:
+    name: Gitleaks Secret Scanner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: true
+
+  php-security-checker:
+    name: PHP Dependencies Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Local PHP Security Checker
+        uses: symfonycorp/security-checker-action@v5
+        with:
+          lock: backend/composer.lock

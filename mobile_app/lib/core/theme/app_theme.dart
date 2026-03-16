@@ -25,11 +25,11 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+          side: BorderSide(color: Colors.grey.withAlpha(25)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

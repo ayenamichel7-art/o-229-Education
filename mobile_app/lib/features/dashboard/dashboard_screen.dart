@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../auth/auth_provider.dart';
+import 'dashboard_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -10,6 +12,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final kpiAsync = ref.watch(dashboardKpiProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,9 +37,49 @@ class DashboardScreen extends ConsumerWidget {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text('Voici un résumé des KPIs de votre établissement.'),
+            const Text('Voici un résumé des activités de votre établissement.'),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            
+            // Google My Business Alert
+            kpiAsync.when(
+              data: (data) {
+                final gmb = data['meta']?['google_business_status'];
+                if (gmb != null && gmb['configured'] == false) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(LucideIcons.alertTriangle, color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Visibilité Google', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF92400E))),
+                              Text(gmb['message'] ?? 'Action requise', style: const TextStyle(fontSize: 12, color: Color(0xFFB45309))),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => launchUrl(Uri.parse(gmb['action_url'] ?? 'https://o-229.com')),
+                          child: const Text('Régler'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
             
             GridView.count(
               crossAxisCount: 2,

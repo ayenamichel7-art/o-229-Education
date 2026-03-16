@@ -92,11 +92,13 @@ class WatchdogCommand extends Command
             try {
                 \Illuminate\Support\Facades\Mail::raw($message, function ($mail) use ($mailRecipient) {
                     $mail->to($mailRecipient)
-                         ->subject('🤖 o-229 Watchdog Alert');
+                         ->subject('🤖 o-229 Watchdog Alert - Rapport de Vulnérabilités');
                 });
                 $this->info('Alerts dispatched to Email.');
             } catch (\Exception $e) {
-                $this->error('Failed to send email alert: ' . $e->getMessage());
+                // Ignore exception locally if mailer is not setup
+                $this->error('Failed to send email alert. Make sure MAIL_ settings are correct in .env');
+                Log::error('Mail Watchdog error: ' . $e->getMessage());
             }
         }
 

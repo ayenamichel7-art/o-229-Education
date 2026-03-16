@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
 use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -16,13 +18,8 @@ class AuthController extends Controller
     /**
      * Login — returns Sanctum token.
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required|string',
-        ]);
-
         $tenantId = resolve('current_tenant_id');
 
         $user = User::withoutGlobalScopes()
@@ -31,6 +28,13 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            // Log failed attempt for Fail2Ban / security monitoring
+            Log::warning('Failed login attempt', [
+                'ip'    => $request->ip(),
+                'email' => $request->email,
+                'agent' => $request->userAgent(),
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => ['Les informations d\'identification fournies sont incorrectes.'],
             ]);

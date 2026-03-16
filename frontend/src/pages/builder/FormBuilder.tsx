@@ -6,8 +6,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
-  DragStartEvent
+  DragEndEvent
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -30,6 +29,7 @@ import {
   Save,
   Eye
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import '../../builder.css';
 
 interface FormField {
@@ -154,6 +154,13 @@ const FormBuilder: React.FC = () => {
     if (selectedFieldId === id) setSelectedFieldId(null);
   };
 
+  const handleSave = () => {
+    const toastId = toast.loading('Sauvegarde du formulaire...');
+    setTimeout(() => {
+      toast.success('Formulaire sauvegardé avec succès !', { id: toastId });
+    }, 1000);
+  };
+
   const selectedField = fields.find(f => f.id === selectedFieldId);
 
   return (
@@ -174,10 +181,10 @@ const FormBuilder: React.FC = () => {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn" style={{ padding: '0.5rem 1rem', background: '#f3f4f6', color: '#374151' }}>
+          <button onClick={() => toast('Prévisualisation non disponible', { icon: '👁️' })} className="btn" style={{ padding: '0.5rem 1rem', background: '#f3f4f6', color: '#374151' }}>
             <Eye size={18} /> Prévisualiser
           </button>
-          <button className="btn btn-primary" style={{ padding: '0.5rem 1.5rem' }}>
+          <button onClick={handleSave} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem' }}>
             <Save size={18} /> Sauvegarder
           </button>
         </div>

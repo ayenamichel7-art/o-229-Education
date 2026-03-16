@@ -3,12 +3,15 @@ import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, CreditCard, LogOut, Settings, FileText, Activity, Globe, Smartphone } from 'lucide-react';
 import { useAuth } from '../store/useAuth';
 import { useTenant } from '../providers/TenantProvider';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export const AppLayout: React.FC = () => {
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuth();
   const { tenant } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     checkAuth();
@@ -30,16 +33,21 @@ export const AppLayout: React.FC = () => {
   }
 
   const navItems = [
-    { label: 'Tableau de bord', icon: LayoutDashboard, path: '/app/dashboard' },
-    { label: 'Admission & Élèves', icon: Users, path: '/app/students' },
-    { label: 'Finances', icon: CreditCard, path: '/app/finance' },
-    { label: 'Rapports', icon: FileText, path: '/app/reports' },
-    { label: 'Site Vitrine (A à Z)', icon: Globe, path: '/app/vitrine-builder' },
-    { label: 'Formulaires', icon: FileText, path: '/app/form-builder' },
-    { label: 'Mon App Mobile', icon: Smartphone, path: '/app/mobile-app' },
-    { label: 'Audit Trail', icon: Activity, path: '/app/audit' },
-    { label: 'Configuration', icon: Settings, path: '/app/settings' },
+    { label: t('common.dashboard'), icon: LayoutDashboard, path: '/app/dashboard', roles: ['super-admin', 'admin-school', 'director', 'accountant', 'teacher'] },
+    { label: t('common.students'), icon: Users, path: '/app/students', roles: ['super-admin', 'admin-school', 'director', 'teacher'] },
+    { label: t('common.finance'), icon: CreditCard, path: '/app/finance', roles: ['super-admin', 'admin-school', 'director', 'accountant'] },
+    { label: t('common.reports'), icon: FileText, path: '/app/reports', roles: ['super-admin', 'admin-school', 'director', 'accountant'] },
+    { label: t('common.vitrine_builder'), icon: Globe, path: '/app/vitrine-builder', roles: ['super-admin', 'admin-school', 'director'] },
+    { label: t('common.form_builder'), icon: FileText, path: '/app/form-builder', roles: ['super-admin', 'admin-school', 'director'] },
+    { label: t('common.mobile_app'), icon: Smartphone, path: '/app/mobile-app', roles: ['super-admin', 'admin-school'] },
+    { label: t('common.audit_trail'), icon: Activity, path: '/app/audit', roles: ['super-admin', 'admin-school'] },
+    { label: t('common.settings'), icon: Settings, path: '/app/settings', roles: ['super-admin', 'admin-school', 'director', 'accountant', 'teacher'] },
   ];
+
+  const userRoles = user?.roles || [];
+  const filteredNavItems = navItems.filter(item => 
+    item.roles.some(role => userRoles.includes(role))
+  );
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--surface-50)' }}>
@@ -63,7 +71,7 @@ export const AppLayout: React.FC = () => {
         </div>
 
         <nav style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const isActive = location.pathname.startsWith(item.path);
             return (
               <Link 
@@ -89,9 +97,12 @@ export const AppLayout: React.FC = () => {
         </nav>
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{user?.first_name} {user?.last_name}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user?.roles?.[0] || 'Utilisateur'}</div>
+          <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{user?.first_name} {user?.last_name}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user?.roles?.[0] || 'Utilisateur'}</div>
+            </div>
+            <LanguageSwitcher />
           </div>
           <button 
             onClick={handleLogout}
@@ -102,7 +113,7 @@ export const AppLayout: React.FC = () => {
               cursor: 'pointer', fontWeight: 600
             }}
           >
-            <LogOut size={18} /> Déconnexion
+            <LogOut size={18} /> {t('common.logout')}
           </button>
         </div>
       </aside>

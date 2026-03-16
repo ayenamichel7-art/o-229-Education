@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Tenant;
 use Stancl\Tenancy\Database\Models\Domain;
-use Stancl\Tenancy\Database\Models\Tenant;
 
 return [
-    'tenant_model' => Tenant::class,
+    'tenant_model' => Tenant::class, // Uses App\Models\Tenant with custom columns & features
     'id_generator' => Stancl\Tenancy\UUIDGenerator::class,
 
     'domain_model' => Domain::class,
@@ -34,7 +34,7 @@ return [
         Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper::class,
         Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper::class,
         Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper::class,
-        // Stancl\Tenancy\Bootstrappers\RedisTenancyBootstrapper::class, // Note: phpredis is needed
+        Stancl\Tenancy\Bootstrappers\RedisTenancyBootstrapper::class, // Enabled: isolates Redis keys per tenant
     ],
 
     /**
@@ -140,7 +140,7 @@ return [
     'redis' => [
         'prefix_base' => 'tenant', // Each key in Redis will be prepended by this prefix_base, followed by the tenant id.
         'prefixed_connections' => [ // Redis connections whose keys are prefixed, to separate one tenant's keys from another.
-            // 'default',
+            'default',
         ],
     ],
 

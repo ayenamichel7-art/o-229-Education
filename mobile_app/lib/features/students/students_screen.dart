@@ -97,7 +97,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withAlpha(10),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -108,8 +108,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         leading: CircleAvatar(
                           radius: 24,
                           backgroundColor: isActive
-                              ? const Color(0xFF3B82F6).withOpacity(0.1)
-                              : Colors.red.withOpacity(0.1),
+                              ? const Color(0xFF3B82F6).withAlpha(25)
+                              : Colors.red.withAlpha(25),
                           child: Text(
                             initials,
                             style: TextStyle(
@@ -129,7 +129,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                  color: const Color(0xFF3B82F6).withAlpha(25),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -145,7 +145,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                            color: isActive ? Colors.green.withAlpha(25) : Colors.red.withAlpha(25),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '../store/useAuth';
 import { useTenant } from '../providers/TenantProvider';
+import { useTranslation } from 'react-i18next';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ export const Login: React.FC = () => {
   
   const { login } = useAuth();
   const { tenant } = useTenant();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +25,7 @@ export const Login: React.FC = () => {
       await login({ email, password });
       navigate('/app/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Identifiants incorrects.');
+      setError(err.response?.data?.message || t('auth.login_error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -45,7 +47,7 @@ export const Login: React.FC = () => {
         {tenant?.logoUrl && <img src={tenant.logoUrl} alt="Logo" style={{ height: '80px', marginBottom: '2rem' }} />}
         <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', color: 'white' }}>{tenant?.name || 'o-229 ERP'}</h1>
         <p style={{ fontSize: '1.25rem', opacity: 0.8, textAlign: 'center', maxWidth: '400px' }}>
-          Connectez-vous à votre espace sécurisé OMI.
+          {t('auth.tagline')}
         </p>
       </div>
 
@@ -56,8 +58,8 @@ export const Login: React.FC = () => {
             <div style={{ display: 'inline-flex', padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '50%', color: 'var(--primary)', marginBottom: '1rem' }}>
               <LogIn size={32} />
             </div>
-            <h2>Bienvenue</h2>
-            <p style={{ color: 'var(--text-muted)' }}>Entrez vos identifiants pour continuer</p>
+            <h2>{t('auth.welcome_back')}</h2>
+            <p style={{ color: 'var(--text-muted)' }}>{t('auth.enter_credentials')}</p>
           </div>
 
           {error && (
@@ -68,7 +70,7 @@ export const Login: React.FC = () => {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label style={labelStyle}>Adresse e-mail</label>
+              <label style={labelStyle}>{t('auth.email_label')}</label>
               <input
                 type="email"
                 value={email}
@@ -80,7 +82,7 @@ export const Login: React.FC = () => {
             </div>
 
             <div>
-              <label style={labelStyle}>Mot de passe</label>
+              <label style={labelStyle}>{t('auth.password_label')}</label>
               <input
                 type="password"
                 value={password}
@@ -92,12 +94,12 @@ export const Login: React.FC = () => {
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ padding: '1rem', fontSize: '1.1rem', marginTop: '1rem' }}>
-              {isSubmitting ? 'Connexion...' : 'Se connecter'}
+              {isSubmitting ? t('common.loading') : t('auth.se_connecter')}
             </button>
           </form>
           
           <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <a href="/" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>&larr; Retourner au site de l'école</a>
+            <a href="/" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>&larr; {t('auth.return_to_site')}</a>
           </div>
         </div>
       </div>

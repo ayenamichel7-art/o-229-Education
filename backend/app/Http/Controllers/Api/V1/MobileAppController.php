@@ -3,16 +3,22 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\MobileApp;
 use Illuminate\Http\Request;
 
 class MobileAppController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorize('viewAny', MobileApp::class);
+    }
+
     /**
      * Get the mobile app configuration for the tenant.
      */
     public function index()
     {
-        $app = \App\Models\MobileApp::first();
+        $app = MobileApp::first();
         
         if (!$app) {
             $tenant = resolve('current_tenant');
@@ -37,13 +43,15 @@ class MobileAppController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', MobileApp::class);
+
         $request->validate([
-            'app_name' => 'required|string',
-            'package_name' => 'required|string',
-            'config' => 'required|array',
+            'app_name'     => ['required', 'string', 'max:100'],
+            'package_name' => ['required', 'string', 'max:150', 'regex:/^[a-z][a-z0-9_.]*$/'],
+            'config'       => ['required', 'array'],
         ]);
 
-        $app = \App\Models\MobileApp::updateOrCreate(
+        $app = MobileApp::updateOrCreate(
             ['tenant_id' => resolve('current_tenant_id')],
             [
                 'app_name' => $request->app_name,
@@ -61,15 +69,15 @@ class MobileAppController extends Controller
      */
     public function requestBuild()
     {
-        $app = \App\Models\MobileApp::first();
+        $this->authorize('build', MobileApp::class);
+
+        $app = MobileApp::first();
         if (!$app) return response()->json(['message' => 'App not configured'], 400);
 
         $app->update(['status' => 'building']);
 
-        // Mock background job
-        // In reality, this would trigger a GitHub Action or a Fastlane server
         dispatch(function () use ($app) {
-            sleep(10); // Simulating build time
+            sleep(10);
             $app->update([
                 'status' => 'active',
                 'apk_url' => 'https://storage.o-229.com/builds/' . $app->package_name . '.apk',

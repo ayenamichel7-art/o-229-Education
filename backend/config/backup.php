@@ -93,7 +93,7 @@ return [
          *
          * If you do not want any compressor at all, set it to null.
          */
-        'database_dump_compressor' => null,
+        'database_dump_compressor' => Spatie\DbDumper\Compressors\GzipCompressor::class,
 
         /*
          * If specified, the database dumped file name will contain a timestamp (e.g.: 'Y-m-d-H-i-s').
@@ -187,7 +187,7 @@ return [
          * After creating the zip, verify it can be opened and contains files.
          * Recommended for critical backups but adds a small overhead.
          */
-        'verify_backup' => false,
+        'verify_backup' => true,
 
         /*
          * The number of attempts, in case the backup command encounters an exception

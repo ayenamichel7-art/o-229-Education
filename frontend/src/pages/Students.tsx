@@ -1,43 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Plus, ChevronDown, Eye, Edit, Trash2 } from 'lucide-react';
-import { apiClient } from '../api/apiClient';
+import { useTranslation } from 'react-i18next';
+import { useStudentStore, Student } from '../store/useStudentStore';
+import { useAuth } from '../store/useAuth';
+import { StudentModal } from '../components/StudentModal';
+import toast from 'react-hot-toast';
 
-interface Student {
-  id: number;
-  matricule: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  grade: { name: string };
-  status: string;
-  created_at: string;
-}
+
 
 export const Students: React.FC = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const { students, isLoading, fetchStudents, deleteStudent } = useStudentStore();
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+
+  // Check if user has admin/management roles to show action buttons
+  const isManager = user?.roles?.some(r => ['super-admin', 'admin-school', 'director'].includes(r));
 
   useEffect(() => {
-    fetchStudents();
-  }, []);
+    fetchStudents(search).catch(() => {
+      // Ignore errors handled by store
+    });
+  }, [search, fetchStudents]);
 
-  const fetchStudents = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiClient.get('/students', { params: { search } });
-      setStudents(res.data.data || []);
-    } catch {
-      // Fallback mock data
-      setStudents([
-        { id: 1, matricule: 'STU-2026-001', first_name: 'Amara', last_name: 'Diallo', email: 'amara@ecole.com', grade: { name: '6ème' }, status: 'active', created_at: '2026-01-15' },
-        { id: 2, matricule: 'STU-2026-002', first_name: 'Fatou', last_name: 'Koné', email: 'fatou@ecole.com', grade: { name: '5ème' }, status: 'active', created_at: '2026-01-20' },
-        { id: 3, matricule: 'STU-2026-003', first_name: 'Moussa', last_name: 'Traoré', email: 'moussa@ecole.com', grade: { name: '4ème' }, status: 'active', created_at: '2026-02-01' },
-        { id: 4, matricule: 'STU-2026-004', first_name: 'Awa', last_name: 'Camara', email: 'awa@ecole.com', grade: { name: '3ème' }, status: 'suspended', created_at: '2026-02-10' },
-        { id: 5, matricule: 'STU-2026-005', first_name: 'Ibrahim', last_name: 'Sylla', email: 'ibrahim@ecole.com', grade: { name: 'Terminale' }, status: 'active', created_at: '2026-02-15' },
-      ]);
-    } finally {
-      setIsLoading(false);
+  const handleDelete = async (id: number) => {
+    if (window.confirm(t('common.confirm_delete') || 'Êtes-vous sûr de vouloir supprimer cet élève ?')) {
+      const loadingToast = toast.loading(t('common.loading') || 'Suppression en cours...');
+      try {
+        await deleteStudent(id);
+        toast.success('Élève supprimé avec succès', { id: loadingToast });
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Erreur lors de la suppression', { id: loadingToast });
+      }
     }
   };
 
@@ -51,13 +48,22 @@ export const Students: React.FC = () => {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text)' }}>
             <Users size={28} style={{ marginRight: 12, verticalAlign: 'middle' }} />
-            Gestion des Élèves
+            {t('students.title')}
           </h1>
-          <p style={{ color: 'var(--color-text-light)', marginTop: 4 }}>{filtered.length} élèves enregistrés</p>
+          <p style={{ color: 'var(--color-text-light)', marginTop: 4 }}>{t('students.registered_count', { count: filtered.length })}</p>
         </div>
-        <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 12, border: 'none', background: 'var(--gradient-primary)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}>
-          <Plus size={18} /> Nouvel Élève
-        </button>
+        {isManager && (
+          <button 
+            onClick={() => {
+              setEditingStudent(null);
+              setIsModalOpen(true);
+            }}
+            className="btn-primary" 
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 12, border: 'none', background: 'var(--gradient-primary)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}
+          >
+            <Plus size={18} /> {t('students.new_student')}
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -65,17 +71,17 @@ export const Students: React.FC = () => {
           <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input
             type="text"
-            placeholder="Rechercher par nom ou matricule..."
+            placeholder={t('students.search_placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: '100%', padding: '12px 12px 12px 42px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)', fontSize: '0.95rem', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}
           />
         </div>
         <button style={{ padding: '12px 20px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(255,255,255,0.8)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem', color: '#475569' }}>
-          Classe <ChevronDown size={16} />
+          {t('students.grade')} <ChevronDown size={16} />
         </button>
         <button style={{ padding: '12px 20px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(255,255,255,0.8)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem', color: '#475569' }}>
-          Statut <ChevronDown size={16} />
+          {t('common.status')} <ChevronDown size={16} />
         </button>
       </div>
 
@@ -83,13 +89,13 @@ export const Students: React.FC = () => {
         {isLoading ? (
           <div style={{ padding: 48, textAlign: 'center', color: '#94a3b8' }}>
             <div className="loading-spinner" />
-            <p>Chargement des données...</p>
+            <p>{t('students.loading_data')}</p>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid rgba(0,0,0,0.06)' }}>
-                {['Matricule', 'Nom Complet', 'Email', 'Classe', 'Statut', 'Actions'].map(h => (
+                {[t('students.matricule'), t('students.full_name'), t('common.email'), t('students.grade'), t('common.status'), t('common.actions')].map(h => (
                   <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>
@@ -104,7 +110,7 @@ export const Students: React.FC = () => {
                   <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '0.9rem' }}>{student.email}</td>
                   <td style={{ padding: '14px 16px' }}>
                     <span style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--color-primary)', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 500 }}>
-                      {student.grade.name}
+                      {student.grade?.name || 'Non assigné'}
                     </span>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
@@ -113,14 +119,30 @@ export const Students: React.FC = () => {
                       color: student.status === 'active' ? '#059669' : '#dc2626',
                       padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 500
                     }}>
-                      {student.status === 'active' ? 'Actif' : 'Suspendu'}
+                      {student.status === 'active' ? t('common.active') : t('common.suspended')}
                     </span>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button title="Voir" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}><Eye size={18} /></button>
-                      <button title="Modifier" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b' }}><Edit size={18} /></button>
-                      <button title="Supprimer" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={18} /></button>
+                      <button title={t('common.view')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}><Eye size={18} /></button>
+                      {isManager && (
+                        <>
+                          <button 
+                            onClick={() => { setEditingStudent(student); setIsModalOpen(true); }}
+                            title={t('common.edit')} 
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b' }}
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(student.id)}
+                            title={t('common.delete')} 
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -129,6 +151,12 @@ export const Students: React.FC = () => {
           </table>
         )}
       </div>
+      
+      <StudentModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        student={editingStudent} 
+      />
     </div>
   );
 };

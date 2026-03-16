@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DndContext, 
   closestCenter,
@@ -29,6 +29,8 @@ import {
   Smartphone,
   QrCode
 } from 'lucide-react';
+import { apiClient } from '../../api/apiClient';
+import toast from 'react-hot-toast';
 import '../../builder.css';
 
 interface BlockData {
@@ -145,11 +147,50 @@ const SortableBlock: React.FC<SortableBlockProps> = ({ block, isActive, onSelect
 };
 
 const PageBuilder: React.FC = () => {
-  const [blocks, setBlocks] = useState<Block[]>([
-    { id: 'b1', type: 'hero', data: { title: 'Lycée Excellence', subtitle: 'L\'éducation de demain, aujourd\'hui.' } },
-    { id: 'b2', type: 'text', data: { title: 'Notre Vision', body: 'Nous croyons en un apprentissage personnalisé...' } },
-  ]);
+  const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVitrine = async () => {
+      try {
+        const res = await apiClient.get('/vitrines/home');
+        if (res.data.data.content && Array.isArray(res.data.data.content)) {
+          setBlocks(res.data.data.content);
+        } else {
+          // Defaults if no content exists yet
+          setBlocks([
+            { id: 'b1', type: 'hero', data: { title: 'Lycée Excellence', subtitle: 'L\'éducation de demain, aujourd\'hui.' } },
+            { id: 'b2', type: 'text', data: { title: 'Notre Vision', body: 'Nous croyons en un apprentissage personnalisé...' } },
+          ]);
+        }
+      } catch (err) {
+        toast.error('Erreur lors du chargement de la vitrine');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchVitrine();
+  }, []);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const toastId = toast.loading('Publication en cours...');
+    try {
+      await apiClient.post('/vitrines', {
+        slug: 'home',
+        title: 'Accueil',
+        content: blocks,
+        is_published: true
+      });
+      toast.success('Page vitrine publiée avec succès !', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la publication', { id: toastId });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -207,8 +248,8 @@ const PageBuilder: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-primary" style={{ height: '40px', fontSize: '0.875rem' }}>
-            <Save size={16} /> Publier les modifications
+          <button onClick={handleSave} disabled={isSaving || isLoading} className="btn btn-primary" style={{ height: '40px', fontSize: '0.875rem' }}>
+            <Save size={16} /> {isSaving ? 'Publication...' : 'Publier les modifications'}
           </button>
         </div>
       </header>
@@ -248,15 +289,19 @@ const PageBuilder: React.FC = () => {
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '5rem' }}>
-                {blocks.map(block => (
-                  <SortableBlock 
-                    key={block.id} 
-                    block={block} 
-                    isActive={selectedBlockId === block.id}
-                    onSelect={(b) => setSelectedBlockId(b.id)}
-                    onDelete={deleteBlock}
-                  />
-                ))}
+                {isLoading ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem' }}>Chargement de la page...</div>
+                ) : (
+                  blocks.map(block => (
+                    <SortableBlock 
+                      key={block.id} 
+                      block={block} 
+                      isActive={selectedBlockId === block.id}
+                      onSelect={(b) => setSelectedBlockId(b.id)}
+                      onDelete={deleteBlock}
+                    />
+                  ))
+                )}
               </div>
             </SortableContext>
           </DndContext>

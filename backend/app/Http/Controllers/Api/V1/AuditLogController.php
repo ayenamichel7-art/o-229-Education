@@ -9,11 +9,25 @@ use Illuminate\Http\Request;
 
 class AuditLogController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorize('viewAny', ActivityLog::class);
+    }
+
     /**
      * List activity logs for the current tenant.
      */
     public function index(Request $request): JsonResponse
     {
+        $request->validate([
+            'action'      => ['nullable', 'string', 'max:50'],
+            'entity_type' => ['nullable', 'string', 'max:100'],
+            'user_id'     => ['nullable', 'integer'],
+            'from'        => ['nullable', 'date'],
+            'to'          => ['nullable', 'date', 'after_or_equal:from'],
+            'per_page'    => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
         $query = ActivityLog::with('user:id,first_name,last_name')
             ->orderByDesc('performed_at');
 
@@ -57,6 +71,8 @@ class AuditLogController extends Controller
     public function show(int $id): JsonResponse
     {
         $log = ActivityLog::with('user:id,first_name,last_name')->findOrFail($id);
+
+        $this->authorize('view', $log);
 
         return response()->json(['data' => $log]);
     }

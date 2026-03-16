@@ -22,6 +22,7 @@ desktop.ini
 
 # ─── Docker ────────────────────────────────────
 docker/volumes/
+docker-compose.override.yml
 
 # ─── Backend (Laravel) ─────────────────────────
 backend/vendor/
@@ -31,6 +32,8 @@ backend/storage/framework/cache/*
 backend/storage/framework/sessions/*
 backend/storage/framework/views/*
 backend/storage/logs/*
+backend/storage/app/private/*
+backend/storage/app/public/tenants/*
 backend/bootstrap/cache/*
 backend/.phpunit.result.cache
 backend/.phpunit.cache/
@@ -54,6 +57,16 @@ last_error.txt
 output.txt
 backend/debug_autoload.php
 backend/create_bucket.php
+backend/test_*.php
+backend/test_*.log
+backend/fluentform-export.json
 
 # ─── Compiled / Lock files (optional) ────────
 # backend/composer.lock  # Uncomment if you don't want to track
+
+# ─── Security: prevent accidental secret commits ────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx

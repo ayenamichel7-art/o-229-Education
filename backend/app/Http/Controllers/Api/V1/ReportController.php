@@ -10,20 +10,26 @@ use Illuminate\Support\Facades\Storage;
 
 class ReportController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorize('viewAny', 'report');
+    }
+
     /**
      * List generated reports from the database.
-     * Reports are stored as files in storage and tracked via activity logs.
      */
     public function index(Request $request): JsonResponse
     {
+        $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
         $tenantId = resolve('current_tenant_id');
 
-        // Build query for reports from files in storage
         $reports = \App\Models\ActivityLog::where('entity_type', 'Report')
             ->orderByDesc('performed_at')
             ->paginate($request->get('per_page', 15));
 
-        // Also check for any ongoing report generation jobs
         $pendingJobs = \DB::table('jobs')
             ->where('queue', 'reports')
             ->count();
@@ -55,11 +61,13 @@ class ReportController extends Controller
      */
     public function generate(Request $request): JsonResponse
     {
+        $this->authorize('create', 'report');
+
         $request->validate([
-            'type' => 'required|string|in:financial,academic,attendance,analytical',
-            'title' => 'nullable|string|max:255',
-            'date_from' => 'nullable|date',
-            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'type'      => ['required', 'string', 'in:financial,academic,attendance,analytical'],
+            'title'     => ['nullable', 'string', 'max:255'],
+            'date_from' => ['nullable', 'date'],
+            'date_to'   => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
 
         $tenantId = resolve('current_tenant_id');
@@ -71,7 +79,6 @@ class ReportController extends Controller
             'analytical' => 'Bilan Analytique — ' . now()->translatedFormat('F Y'),
         };
 
-        // Log the report generation request
         \App\Models\ActivityLog::create([
             'tenant_id'    => $tenantId,
             'user_id'      => $request->user()->id,
@@ -88,8 +95,6 @@ class ReportController extends Controller
             ],
         ]);
 
-        // Dispatch background job for heavy report generation
-        // ExportReportJob(int $tenantId, int $userId, string $reportType, string $format, array $filters)
         ExportReportJob::dispatch(
             $tenantId, 
             $request->user()->id, 

@@ -49,6 +49,11 @@ class Student extends Model
         'date_of_birth'   => 'date',
         'enrollment_date' => 'date',
         'media_authorization' => 'boolean',
+        'address' => 'encrypted',
+        'guardian_phone' => 'encrypted',
+        'guardian_email' => 'encrypted',
+        'birth_place' => 'encrypted',
+        'medical_notes' => 'encrypted',
     ];
 
     // ─── Relationships ───────────────────────────────────

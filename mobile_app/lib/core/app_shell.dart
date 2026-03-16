@@ -44,7 +44,7 @@ class _AppShellState extends State<AppShell> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha(13),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -76,7 +76,7 @@ class _AppShellState extends State<AppShell> {
                     ),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? const Color(0xFF3B82F6).withOpacity(0.1)
+                          ? const Color(0xFF3B82F6).withAlpha(25)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(14),
                     ),

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, Calendar, Filter, Eye, Clock, CheckCircle } from 'lucide-react';
+import { FileText, Download, Calendar, Clock, CheckCircle } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
+import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 
 interface Report {
   id: number;
@@ -13,9 +15,11 @@ interface Report {
 }
 
 export const Reports: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [filterType, setFilterType] = useState('Tous');
 
   useEffect(() => {
     const load = async () => {
@@ -23,14 +27,8 @@ export const Reports: React.FC = () => {
       try {
         const res = await apiClient.get('/reports');
         setReports(res.data.data || []);
-      } catch {
-        setReports([
-          { id: 1, title: 'Rapport Financier - Mars 2026', type: 'Financier', generated_by: 'Robot Automatique', status: 'completed', created_at: '2026-03-10T14:30:00', file_url: '#' },
-          { id: 2, title: 'Liste des Élèves par Classe', type: 'Académique', generated_by: 'Admin', status: 'completed', created_at: '2026-03-08T09:15:00', file_url: '#' },
-          { id: 3, title: 'Rapport de Présence - Semaine 10', type: 'Présence', generated_by: 'Robot Automatique', status: 'completed', created_at: '2026-03-07T18:00:00', file_url: '#' },
-          { id: 4, title: 'Bilan Trimestriel Q1 2026', type: 'Analytique', generated_by: 'Robot Automatique', status: 'processing', created_at: '2026-03-12T10:00:00', file_url: null },
-          { id: 5, title: 'Suivi Paiements Impayés', type: 'Financier', generated_by: 'Robot Automatique', status: 'scheduled', created_at: '2026-03-15T08:00:00', file_url: null },
-        ]);
+      } catch (err: any) {
+        toast.error('Erreur lors du chargement des rapports');
       } finally {
         setIsLoading(false);
       }
@@ -40,20 +38,26 @@ export const Reports: React.FC = () => {
 
   const handleGenerateReport = async () => {
     setGenerating(true);
+    const toastId = toast.loading('Demande de génération envoyée au robot...');
     try {
-      await apiClient.post('/reports/generate', { type: 'complete' });
-      alert('🤖 Le Robot a lancé la génération du rapport ! Vous serez notifié quand il sera prêt.');
-    } catch {
-      alert('🤖 Rapport planifié par le Robot ! (Mode démo)');
+      // By default generate a financial one if no spec provided, or academic.
+      await apiClient.post('/reports/generate', { type: 'academic' });
+      toast.success(t('reports_page.robot_alert'), { id: toastId });
+      // Reload reports after a short delay to fetch new pending status
+      setTimeout(() => {
+        apiClient.get('/reports').then(res => setReports(res.data.data || []));
+      }, 1000);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la génération', { id: toastId });
     } finally {
       setGenerating(false);
     }
   };
 
   const statusConfig: Record<string, { color: string; bg: string; icon: React.ReactNode; label: string }> = {
-    completed: { color: '#059669', bg: 'rgba(16,185,129,0.1)', icon: <CheckCircle size={14} />, label: 'Terminé' },
-    processing: { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', icon: <Clock size={14} />, label: 'En cours' },
-    scheduled: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', icon: <Calendar size={14} />, label: 'Planifié' },
+    completed: { color: '#059669', bg: 'rgba(16,185,129,0.1)', icon: <CheckCircle size={14} />, label: t('common.completed') },
+    processing: { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', icon: <Clock size={14} />, label: t('common.processing') },
+    scheduled: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', icon: <Calendar size={14} />, label: t('common.scheduled') },
   };
 
   return (
@@ -62,10 +66,10 @@ export const Reports: React.FC = () => {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text)' }}>
             <FileText size={28} style={{ marginRight: 12, verticalAlign: 'middle' }} />
-            Rapports & Robots
+            {t('reports_page.title')}
           </h1>
           <p style={{ color: 'var(--color-text-light)', marginTop: 4 }}>
-            Rapports générés automatiquement par les Robots OMI
+            {t('reports_page.subtitle')}
           </p>
         </div>
         <button
@@ -73,7 +77,7 @@ export const Reports: React.FC = () => {
           disabled={generating}
           style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem', opacity: generating ? 0.7 : 1 }}
         >
-          {generating ? '🤖 Génération...' : '🤖 Générer un Rapport'}
+          {generating ? t('reports_page.generating') : t('reports_page.generate_btn')}
         </button>
       </div>
 
@@ -90,28 +94,36 @@ export const Reports: React.FC = () => {
       }}>
         <span style={{ fontSize: '2rem' }}>🤖</span>
         <div>
-          <p style={{ fontWeight: 600, color: '#6366f1', marginBottom: 4 }}>Robots Automatiques Actifs</p>
+          <p style={{ fontWeight: 600, color: '#6366f1', marginBottom: 4 }}>{t('reports_page.robots_active')}</p>
           <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-            3 robots surveillent votre établissement : Alertes de paiement, Génération de bilans, Suivi de présence.
-            Ils envoient des rapports PDF téléchargeables à intervalles réguliers.
+            {t('reports_page.robots_desc')}
           </p>
         </div>
       </div>
 
       {/* Filtre */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        {['Tous', 'Financier', 'Académique', 'Présence', 'Analytique'].map(f => (
-          <button key={f} style={{
+        {[
+          { key: 'Tous', label: t('reports_page.filter_all') },
+          { key: 'Financier', label: t('reports_page.filter_financial') },
+          { key: 'Académique', label: t('reports_page.filter_academic') },
+          { key: 'Présence', label: t('reports_page.filter_attendance') },
+          { key: 'Analytique', label: t('reports_page.filter_analytic') }
+        ].map(f => (
+          <button 
+            key={f.key} 
+            onClick={() => setFilterType(f.key)}
+            style={{
             padding: '8px 20px',
             borderRadius: 20,
-            border: f === 'Tous' ? '2px solid var(--color-primary)' : '1px solid rgba(0,0,0,0.1)',
-            background: f === 'Tous' ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.8)',
-            color: f === 'Tous' ? 'var(--color-primary)' : '#64748b',
-            fontWeight: f === 'Tous' ? 600 : 400,
+            border: filterType === f.key ? '2px solid var(--color-primary)' : '1px solid rgba(0,0,0,0.1)',
+            background: filterType === f.key ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.8)',
+            color: filterType === f.key ? 'var(--color-primary)' : '#64748b',
+            fontWeight: filterType === f.key ? 600 : 400,
             cursor: 'pointer',
             fontSize: '0.85rem',
           }}>
-            {f}
+            {f.label}
           </button>
         ))}
       </div>
@@ -119,10 +131,15 @@ export const Reports: React.FC = () => {
       {/* Rapport list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {isLoading ? (
-          <div style={{ padding: 48, textAlign: 'center', color: '#94a3b8' }}>Chargement des rapports...</div>
+          <div style={{ padding: 48, textAlign: 'center', color: '#94a3b8' }}>{t('reports_page.loading_reports')}</div>
         ) : (
-          reports.map((report) => {
-            const sc = statusConfig[report.status];
+          reports.filter(r => filterType === 'Tous' ||
+            (filterType === 'Financier' && r.type === 'financial') ||
+            (filterType === 'Académique' && r.type === 'academic') ||
+            (filterType === 'Présence' && r.type === 'attendance') ||
+            (filterType === 'Analytique' && r.type === 'analytical')
+          ).map((report) => {
+            const sc = statusConfig[report.status] || statusConfig['processing'];
             return (
               <div key={report.id} style={{
                 background: 'rgba(255,255,255,0.7)',
@@ -146,7 +163,7 @@ export const Reports: React.FC = () => {
                   <div>
                     <p style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--color-text)' }}>{report.title}</p>
                     <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 2 }}>
-                      Par {report.generated_by} · {new Date(report.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      Par {report.generated_by} · {new Date(report.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                 </div>
@@ -154,11 +171,15 @@ export const Reports: React.FC = () => {
                   <span style={{ background: sc.bg, color: sc.color, padding: '4px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     {sc.icon} {sc.label}
                   </span>
-                  {report.status === 'completed' && (
-                    <button style={{ background: 'var(--gradient-primary)', border: 'none', borderRadius: 10, padding: '8px 16px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 500 }}>
-                      <Download size={14} /> PDF
+                  {report.status === 'completed' && report.file_url ? (
+                    <a href={report.file_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', background: 'var(--gradient-primary)', border: 'none', borderRadius: 10, padding: '8px 16px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 500 }}>
+                      <Download size={14} /> Télécharger
+                    </a>
+                  ) : report.status === 'completed' && !report.file_url ? (
+                   <button onClick={() => toast.error('Ce fichier n\'est plus disponible')} style={{ background: '#cbd5e1', border: 'none', borderRadius: 10, padding: '8px 16px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 500 }}>
+                      <FileText size={14} /> Non Disponible
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             );

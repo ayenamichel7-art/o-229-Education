@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\LandingPage;
 use Illuminate\Http\Request;
 
 class VitrineController extends Controller
@@ -20,12 +21,11 @@ class VitrineController extends Controller
      */
     public function show($slug)
     {
-        $page = \App\Models\LandingPage::where('slug', $slug)
+        $page = LandingPage::where('slug', $slug)
             ->where('is_published', true)
             ->first();
 
         if (!$page) {
-            // If home doesn't exist, return default branding from Tenant
             if ($slug === 'home') {
                 return response()->json([
                     'data' => [
@@ -43,7 +43,7 @@ class VitrineController extends Controller
                 'id' => $page->id,
                 'slug' => $page->slug,
                 'title' => $page->title,
-                'content' => $page->content, // This contains the blocks (A to Z)
+                'content' => $page->content,
                 'settings' => $page->settings,
                 'branding' => resolve('current_tenant')->getBrandingConfig(),
             ]
@@ -55,13 +55,18 @@ class VitrineController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', LandingPage::class);
+
         $request->validate([
-            'slug' => 'required|string',
-            'title' => 'required|string',
-            'content' => 'required|array',
+            'slug'             => ['required', 'string', 'max:100', 'regex:/^[a-z0-9\-]+$/'],
+            'title'            => ['required', 'string', 'max:255'],
+            'content'          => ['required', 'array'],
+            'is_published'     => ['nullable', 'boolean'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
+            'settings'         => ['nullable', 'array'],
         ]);
 
-        $page = \App\Models\LandingPage::updateOrCreate(
+        $page = LandingPage::updateOrCreate(
             ['slug' => $request->slug],
             [
                 'title' => $request->title,

@@ -11,9 +11,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        
         // Approuver le SSL/HTTPS venant de Cloudflare ou Nginx
         $middleware->trustProxies(at: '*');
         
+        $middleware->append(\App\Http\Middleware\SetLocale::class);
         $middleware->statefulApi();
         $middleware->alias([
             'feature' => \App\Http\Middleware\CheckFeature::class,

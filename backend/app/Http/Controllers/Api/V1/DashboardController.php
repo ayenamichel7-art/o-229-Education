@@ -21,8 +21,20 @@ class DashboardController extends Controller
         $academicYearId = $request->query('academic_year_id');
 
         $kpis = $this->kpiService->getDashboardKpis($academicYearId);
+        $tenant = resolve('current_tenant');
 
-        return response()->json(['data' => $kpis]);
+        return response()->json([
+            'data' => $kpis,
+            'meta' => [
+                'google_business_status' => [
+                    'configured' => $tenant->isGoogleBusinessConfigured(),
+                    'message' => $tenant->isGoogleBusinessConfigured() 
+                        ? 'Votre fiche Google Business est configurée.' 
+                        : 'Action requise : Veuillez configurer votre fiche Google My Business pour afficher votre localisation.',
+                    'action_url' => '/settings/vitrine' // Hypothétique lien vers les réglages
+                ]
+            ]
+        ]);
     }
 
     /**

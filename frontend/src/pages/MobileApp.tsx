@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Smartphone, 
-  Download, 
   RefreshCw, 
-  CheckCircle, 
+  CheckCircle,
   ShieldCheck, 
-  Settings, 
-  QrCode, 
-  Share2, 
-  Monitor, 
+  Settings,
+  QrCode,
+  Share2,
+  Monitor,
   ChevronRight,
   Printer
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslation } from 'react-i18next';
+import { apiClient } from '../api/apiClient';
+import toast from 'react-hot-toast';
 
 interface MobileAppData {
   app_name: string;
@@ -27,44 +29,61 @@ interface MobileAppData {
 }
 
 export const MobileAppPage: React.FC = () => {
+  const { t } = useTranslation();
   const [appData, setAppData] = useState<MobileAppData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isBuilding, setIsBuilding] = useState(false);
 
   useEffect(() => {
-    setAppData({
-      app_name: "Lycée Excellence Mobile",
-      package_name: "com.o229.lycee-excellence",
-      status: 'active',
-      apk_url: "https://storage.o-229.com/builds/com.o229.lycee-excellence.apk",
-      config: {
-        primary_color: "#1E40AF",
-        secondary_color: "#F59E0B"
-      },
-      last_build_at: "2026-03-12 14:30:00"
-    });
+    const fetchAppConfig = async () => {
+      try {
+        const res = await apiClient.get('/mobile-app');
+        setAppData(res.data.data);
+      } catch (err: any) {
+        toast.error('Impossible de charger la configuration Mobile.');
+      }
+    };
+    fetchAppConfig();
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => setIsSaving(false), 1000);
-  };
-
-  const handleBuildRequest = () => {
-    setIsBuilding(true);
-    if (appData) setAppData({ ...appData, status: 'building' });
-    setTimeout(() => {
-      setIsBuilding(false);
-      if (appData) setAppData({ 
-        ...appData, 
-        status: 'active', 
-        last_build_at: new Date().toISOString(),
-        apk_url: "https://storage.o-229.com/builds/new-version.apk"
+    const toastId = toast.loading('Sauvegarde de la configuration...');
+    try {
+      await apiClient.post('/mobile-app', {
+        app_name: appData?.app_name,
+        package_name: appData?.package_name,
+        config: appData?.config,
       });
-    }, 5000);
+      toast.success('Configuration enregistrée', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la sauvegarde', { id: toastId });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  if (!appData) return <div>Chargement...</div>;
+  const handleBuildRequest = async () => {
+    setIsBuilding(true);
+    const toastId = toast.loading('Demande de compilation envoyée au serveur...');
+    if (appData) setAppData({ ...appData, status: 'building' });
+    try {
+      const res = await apiClient.post('/mobile-app/build');
+      toast.success(res.data.message || 'Compilation démarrée. Veuillez patienter environ 1 minute.', { id: toastId });
+      
+      // Auto-refresh after 15 seconds to check if status flipped to 'active'
+      setTimeout(() => {
+        apiClient.get('/mobile-app').then(res => setAppData(res.data.data));
+        setIsBuilding(false);
+      }, 15000);
+
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la demande de compilation', { id: toastId });
+      setIsBuilding(false);
+    }
+  };
+
+  if (!appData) return <div>{t('common.loading')}</div>;
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '5rem' }}>
@@ -87,15 +106,15 @@ export const MobileAppPage: React.FC = () => {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-             <h1 style={{ margin: 0 }}>Solution Mobile Multi-Canal</h1>
+             <h1 style={{ margin: 0 }}>{t('mobile.title')}</h1>
              <span style={{ padding: '0.4rem 1rem', background: '#dcfce7', color: '#166534', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>PREMIUM</span>
           </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Distribuez votre application sans passer par le Play Store grâce aux QR Codes et à la technologie PWA.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>{t('mobile.subtitle')}</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
            <button className="btn btn-primary" onClick={handleBuildRequest} disabled={isBuilding}>
               <RefreshCw size={18} className={isBuilding ? 'animate-spin' : ''} />
-              {isBuilding ? 'Compilation...' : 'Compiler l\'App'}
+              {isBuilding ? t('mobile.compiling') : t('mobile.compile')}
            </button>
            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>V. {appData.package_name}</span>
         </div>
@@ -111,11 +130,11 @@ export const MobileAppPage: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
               <div>
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary)' }}>
-                  <QrCode size={22} /> Solution 1 : Distribution par QR Code
+                  <QrCode size={22} /> {t('mobile.solution1_title')}
                 </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>Affichez ce code dans l'établissement pour un téléchargement instantané.</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>{t('mobile.solution1_subtitle')}</p>
               </div>
-              <button className="btn" style={{ background: '#f1f5f9', padding: '0.5rem' }} title="Imprimer pour affichage">
+              <button className="btn" style={{ background: '#f1f5f9', padding: '0.5rem' }} title={t('common.print')}>
                 <Printer size={18} />
               </button>
             </div>
@@ -126,13 +145,20 @@ export const MobileAppPage: React.FC = () => {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ marginBottom: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '0.25rem' }}>Lien de l'APK</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '0.25rem' }}>{t('mobile.apk_link')}</div>
                   <code style={{ background: '#eee', padding: '0.4rem', borderRadius: '4px', fontSize: '0.8rem', display: 'block', wordBreak: 'break-all' }}>
                     {appData.apk_url}
                   </code>
                 </div>
-                <button className="btn" style={{ width: '100%', background: 'white', border: '1px solid #ddd', fontSize: '0.9rem' }}>
-                  <Share2 size={16} /> Copier le lien de partage
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(appData.apk_url || '');
+                    toast.success('Lien copié !');
+                  }} 
+                  className="btn" 
+                  style={{ width: '100%', background: 'white', border: '1px solid #ddd', fontSize: '0.9rem' }}
+                >
+                  <Share2 size={16} /> {t('mobile.copy_link')}
                 </button>
               </div>
             </div>
@@ -141,29 +167,29 @@ export const MobileAppPage: React.FC = () => {
           {/* Section Solution 2: PWA */}
           <div className="glass-card" style={{ padding: '2rem', borderLeft: '4px solid #0891b2' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#0891b2' }}>
-              <Monitor size={22} /> Solution 2 : Progressive Web App (PWA)
+              <Monitor size={22} /> {t('mobile.solution2_title')}
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem', marginBottom: '1.5rem' }}>
-              Transformez votre site web en application installable sans fichier APK. Idéal pour iPhone et Android.
+              {t('mobile.solution2_subtitle')}
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ background: '#ecfeff', padding: '1.25rem', borderRadius: '12px' }}>
                 <CheckCircle size={18} color="#0891b2" style={{ marginBottom: '0.5rem' }} />
-                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Installation Native</div>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>S'ajoute à l'écran d'accueil comme une vraie app.</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t('mobile.native_install')}</div>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{t('mobile.native_desc')}</div>
               </div>
               <div style={{ background: '#ecfeff', padding: '1.25rem', borderRadius: '12px' }}>
                 <CheckCircle size={18} color="#0891b2" style={{ marginBottom: '0.5rem' }} />
-                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Mises à jour Web</div>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Les parents ont toujours la dernière version.</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t('mobile.web_updates')}</div>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{t('mobile.web_desc')}</div>
               </div>
             </div>
             
             <div style={{ marginTop: '1.5rem', padding: '1rem', border: '1px dashed #0891b2', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem' }}>État du Service Worker : <strong>Actif & Sécurisé (SSL)</strong></span>
+              <span style={{ fontSize: '0.85rem' }}>{t('mobile.sw_status')}</span>
               <button style={{ background: 'none', border: 'none', color: '#0891b2', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                Tester le manifest <ChevronRight size={16} />
+                {t('mobile.test_manifest')} <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -173,19 +199,25 @@ export const MobileAppPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Settings size={20} /> Personnalisation visuelle
+              <Settings size={20} /> {t('mobile.visual_config')}
             </h3>
             
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Couleur de thème (Barre d'état)</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>{t('mobile.theme_color')}</label>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <input type="color" value={appData.config.primary_color} style={{ width: '40px', height: '40px', border: 'none', background: 'none' }} />
-                <input type="text" value={appData.config.primary_color} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: '1px solid #ddd' }} />
+                <input type="color" 
+                  value={appData.config?.primary_color || '#1E40AF'} 
+                  onChange={(e) => setAppData({...appData, config: {...appData.config, primary_color: e.target.value}})}
+                  style={{ width: '40px', height: '40px', border: 'none', background: 'none' }} />
+                <input type="text" 
+                  value={appData.config?.primary_color || '#1E40AF'} 
+                  onChange={(e) => setAppData({...appData, config: {...appData.config, primary_color: e.target.value}})}
+                  style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: '1px solid #ddd' }} />
               </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '15px' }}>
-               <p style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem' }}>Aperçu de l'icône</p>
+               <p style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem' }}>{t('mobile.icon_preview')}</p>
                <div style={{ display: 'flex', gap: '1rem' }}>
                   <div style={{ width: 60, height: 60, background: 'var(--primary)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ color: 'white', fontWeight: 800, fontSize: '1.5rem' }}>{appData.app_name.charAt(0)}</div>
@@ -194,21 +226,21 @@ export const MobileAppPage: React.FC = () => {
                     <div style={{ color: 'white', fontWeight: 800, fontSize: '1.5rem' }}>{appData.app_name.charAt(0)}</div>
                   </div>
                   <div style={{ flex: 1, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    Les icônes sont générées automatiquement en formats <strong>Carré</strong> et <strong>Adaptive</strong> pour Android 13+.
+                    {t('mobile.icon_desc')}
                   </div>
                </div>
             </div>
 
-            <button className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem' }} onClick={handleSave}>
-               Sauvegarder les paramètres visuels
+            <button className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem', opacity: isSaving ? 0.7 : 1 }} onClick={handleSave} disabled={isSaving}>
+               {isSaving ? 'Enregistrement...' : t('mobile.save_settings')}
             </button>
           </div>
 
           <div className="glass-card" style={{ background: 'var(--surface-900)', color: 'white', padding: '2.5rem', textAlign: 'center' }}>
              <ShieldCheck size={48} color="#10B981" style={{ marginBottom: '1rem' }} />
-             <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>Protection o-229</h4>
+             <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>{t('mobile.protection_title')}</h4>
              <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-               Toutes les applications générées utilisent le protocole HTTPS et l'authentification sécurisée de notre plateforme. Aucune donnée n'est stockée sur l'appareil de manière non cryptée.
+               {t('mobile.protection_desc')}
              </p>
           </div>
         </div>
