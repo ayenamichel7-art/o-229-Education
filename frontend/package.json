@@ -26,7 +26,7 @@
     "react-helmet-async": "^3.0.0",
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^16.5.8",
-    "react-router-dom": "^6.22.3",
+    "react-router-dom": "^7.14.1",
     "recharts": "^2.12.3",
     "vite-plugin-pwa": "^0.19.8",
     "zustand": "^4.5.2"
