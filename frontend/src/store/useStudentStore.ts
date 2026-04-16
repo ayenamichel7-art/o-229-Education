@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { apiClient } from '../api/apiClient';
+import { create } from "zustand";
+import { apiClient } from "../api/apiClient";
 
 export interface Student {
   id: number;
@@ -10,7 +10,7 @@ export interface Student {
   phone: string;
   gender: string;
   grade: { id: number; name: string };
-  status: 'active' | 'graduated' | 'transferred' | 'suspended';
+  status: "active" | "graduated" | "transferred" | "suspended";
   enrollment_date: string;
 }
 
@@ -29,22 +29,25 @@ export const useStudentStore = create<StudentState>((set) => ({
   isLoading: false,
   error: null,
 
-  fetchStudents: async (search = '') => {
+  fetchStudents: async (search = "") => {
     set({ isLoading: true, error: null });
     try {
-      const res = await apiClient.get('/students', { params: { search } });
+      const res = await apiClient.get("/students", { params: { search } });
       set({ students: res.data.data, isLoading: false });
     } catch (err: any) {
-      set({ isLoading: false, error: err.response?.data?.message || 'Failed to fetch students' });
+      set({
+        isLoading: false,
+        error: err.response?.data?.message || "Failed to fetch students",
+      });
       throw err;
     }
   },
 
   addStudent: async (data) => {
     try {
-      const res = await apiClient.post('/students', data);
+      const res = await apiClient.post("/students", data);
       const newStudent = res.data.data;
-      set(state => ({ students: [newStudent, ...state.students] }));
+      set((state) => ({ students: [newStudent, ...state.students] }));
       return newStudent;
     } catch (err: any) {
       throw err;
@@ -55,8 +58,8 @@ export const useStudentStore = create<StudentState>((set) => ({
     try {
       const res = await apiClient.put(`/students/${id}`, data);
       const updatedStudent = res.data.data;
-      set(state => ({
-        students: state.students.map(s => s.id === id ? updatedStudent : s)
+      set((state) => ({
+        students: state.students.map((s) => (s.id === id ? updatedStudent : s)),
       }));
       return updatedStudent;
     } catch (err: any) {
@@ -67,11 +70,11 @@ export const useStudentStore = create<StudentState>((set) => ({
   deleteStudent: async (id) => {
     try {
       await apiClient.delete(`/students/${id}`);
-      set(state => ({
-        students: state.students.filter(s => s.id !== id)
+      set((state) => ({
+        students: state.students.filter((s) => s.id !== id),
       }));
     } catch (err: any) {
       throw err;
     }
-  }
+  },
 }));

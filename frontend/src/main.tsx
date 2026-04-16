@@ -1,22 +1,24 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
-import ErrorBoundary from './components/ErrorBoundary'
-import './index.css'
-import './i18n'
-import { Toaster, toast } from 'react-hot-toast'
-import * as Sentry from '@sentry/react'
-import { registerSW } from 'virtual:pwa-register'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
+import "./index.css";
+import "./i18n";
+import { Toaster, toast } from "react-hot-toast";
+import * as Sentry from "@sentry/react";
+import { registerSW } from "virtual:pwa-register";
 
 // ─── PWA Service Worker (Mode Hors-Ligne) ────────────────
 registerSW({
   onNeedRefresh() {
-    toast('Une mise à jour de o-229 est disponible. Cliquez pour rafraîchir.', { duration: 8000 });
+    toast("Une mise à jour de o-229 est disponible. Cliquez pour rafraîchir.", {
+      duration: 8000,
+    });
   },
   onOfflineReady() {
-    toast.success('L\'application est prête à fonctionner hors-ligne !');
+    toast.success("L'application est prête à fonctionner hors-ligne !");
   },
-})
+});
 
 // ─── Sentry Error Monitoring & Tracing ──────────────────
 Sentry.init({
@@ -36,11 +38,11 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <Toaster position="top-right" />
       <App />
     </ErrorBoundary>
   </React.StrictMode>,
-)
+);

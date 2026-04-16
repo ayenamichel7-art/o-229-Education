@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { apiClient, sanctumClient } from '../api/apiClient';
+import { create } from "zustand";
+import { apiClient, sanctumClient } from "../api/apiClient";
 
 interface User {
   id: number;
@@ -30,16 +30,21 @@ export const useAuth = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       // Step 1: Fetch CSRF cookie from Sanctum (required for SPA authentication)
-      await sanctumClient.get('/sanctum/csrf-cookie');
+      await sanctumClient.get("/sanctum/csrf-cookie");
 
       // Step 2: Authenticate via Laravel Sanctum
-      await apiClient.post('/auth/login', credentials);
+      await apiClient.post("/auth/login", credentials);
 
       // Step 3: Fetch authenticated user profile
-      const res = await apiClient.get('/auth/me');
-      set({ user: res.data.data, isAuthenticated: true, isLoading: false, error: null });
+      const res = await apiClient.get("/auth/me");
+      set({
+        user: res.data.data,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Identifiants incorrects';
+      const message = err.response?.data?.message || "Identifiants incorrects";
       set({ isLoading: false, error: message });
       throw err;
     }
@@ -47,7 +52,7 @@ export const useAuth = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      await apiClient.post('/auth/logout');
+      await apiClient.post("/auth/logout");
     } finally {
       set({ user: null, isAuthenticated: false, error: null });
     }
@@ -55,10 +60,10 @@ export const useAuth = create<AuthState>((set) => ({
 
   checkAuth: async () => {
     try {
-      const res = await apiClient.get('/auth/me');
+      const res = await apiClient.get("/auth/me");
       set({ user: res.data.data, isAuthenticated: true, isLoading: false });
     } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
-  }
+  },
 }));

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { apiClient } from '../api/apiClient';
+import { create } from "zustand";
+import { apiClient } from "../api/apiClient";
 
 export interface Payment {
   id: number;
@@ -9,7 +9,7 @@ export interface Payment {
   amount_paid: number;
   type: string;
   payment_method: string;
-  status: 'paid' | 'partial' | 'pending' | 'overdue';
+  status: "paid" | "partial" | "pending" | "overdue";
   due_date: string | null;
   paid_at: string | null;
   created_at: string;
@@ -32,7 +32,11 @@ interface FinanceState {
   fetchPayments: () => Promise<void>;
   fetchSummary: () => Promise<void>;
   recordPayment: (data: any) => Promise<Payment>;
-  processInstallment: (id: number, amount: number, method: string) => Promise<Payment>;
+  processInstallment: (
+    id: number,
+    amount: number,
+    method: string,
+  ) => Promise<Payment>;
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -44,28 +48,31 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   fetchPayments: async () => {
     set({ isLoading: true, error: null });
     try {
-      const res = await apiClient.get('/payments');
+      const res = await apiClient.get("/payments");
       set({ payments: res.data.data, isLoading: false });
     } catch (err: any) {
-      set({ isLoading: false, error: err.response?.data?.message || 'Failed to fetch payments' });
+      set({
+        isLoading: false,
+        error: err.response?.data?.message || "Failed to fetch payments",
+      });
       throw err;
     }
   },
 
   fetchSummary: async () => {
     try {
-      const res = await apiClient.get('/payments-summary');
+      const res = await apiClient.get("/payments-summary");
       set({ summary: res.data.data });
     } catch (err) {
-      console.error('Failed to fetch financial summary', err);
+      console.error("Failed to fetch financial summary", err);
     }
   },
 
   recordPayment: async (data) => {
     try {
-      const res = await apiClient.post('/payments', data);
+      const res = await apiClient.post("/payments", data);
       const newPayment = res.data.data;
-      set(state => ({ payments: [newPayment, ...state.payments] }));
+      set((state) => ({ payments: [newPayment, ...state.payments] }));
       get().fetchSummary();
       return newPayment;
     } catch (err: any) {
@@ -75,15 +82,18 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
   processInstallment: async (id, amount, method) => {
     try {
-      const res = await apiClient.post(`/payments/${id}/installment`, { amount, payment_method: method });
+      const res = await apiClient.post(`/payments/${id}/installment`, {
+        amount,
+        payment_method: method,
+      });
       const updatedPayment = res.data.data;
-      set(state => ({
-        payments: state.payments.map(p => p.id === id ? updatedPayment : p)
+      set((state) => ({
+        payments: state.payments.map((p) => (p.id === id ? updatedPayment : p)),
       }));
       get().fetchSummary();
       return updatedPayment;
     } catch (err: any) {
       throw err;
     }
-  }
+  },
 }));
