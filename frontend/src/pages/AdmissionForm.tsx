@@ -91,7 +91,14 @@ export const AdmissionForm: React.FC = () => {
       if (requires_payment && payment_url) {
         setSuccessMsg("Candidature soumise ! Vous allez être redirigé vers le paiement des frais d'inscription...");
         setTimeout(() => {
-          window.location.href = payment_url;
+          // Securing redirection: Only allow trusted domains
+          const isTrusted = payment_url.startsWith('https://') || payment_url.startsWith('http://localhost');
+          if (isTrusted) {
+            window.location.href = payment_url;
+          } else {
+            setErrorMsg("Erreur critique : URL de redirection non sécurisée.");
+            console.error("Blocked insecure redirect to:", payment_url);
+          }
         }, 2000);
       } else {
         setSuccessMsg('Votre dossier a été soumis avec succès ! Nous vous contacterons sous peu.');
