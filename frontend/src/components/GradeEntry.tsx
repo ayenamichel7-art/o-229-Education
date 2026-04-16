@@ -77,7 +77,9 @@ export const GradeEntry: React.FC<GradeEntryProps> = ({ examId, onClose, onSucce
     }
   };
 
-  if (loading) return <div style={{ padding: '4rem', textAlign: 'center' }}>Chargement de l'évaluation...</div>;
+  if (loading) {
+    return <div style={{ padding: '4rem', textAlign: 'center' }}>Chargement de l'évaluation...</div>;
+  }
 
   return (
     <div className="animate-fade-in" style={{ padding: '0 0 2rem' }}>
