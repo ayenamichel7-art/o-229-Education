@@ -1,29 +1,30 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AcademicReportController;
+use App\Http\Controllers\Api\V1\AlumniController;
+use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConfigController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\ExamController;
 use App\Http\Controllers\Api\V1\FormTemplateController;
-use App\Http\Controllers\Api\V1\MobileAppController;
-use App\Http\Controllers\Api\V1\PaymentController;
-use App\Http\Controllers\Api\V1\ReportController;
-use App\Http\Controllers\Api\V1\StudentController;
-use App\Http\Controllers\Api\V1\VitrineController;
-use App\Http\Controllers\Api\V1\TimetableController;
-use App\Http\Controllers\Api\V1\AttendanceController;
-use App\Http\Controllers\Api\V1\StaffAttendanceController;
-use App\Http\Controllers\Api\V1\PaymentGatewayController;
+use App\Http\Controllers\Api\V1\HealthCheckController;
+use App\Http\Controllers\Api\V1\JobOfferController;
 use App\Http\Controllers\Api\V1\LessonLogController;
-use App\Http\Controllers\Api\V1\AcademicReportController;
-use App\Http\Controllers\Api\V1\TenantSettingsController;
+use App\Http\Controllers\Api\V1\MobileAppController;
+use App\Http\Controllers\Api\V1\ParentCRMController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentGatewayController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SchoolClassController;
+use App\Http\Controllers\Api\V1\StaffAttendanceController;
+use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\SubjectController;
 use App\Http\Controllers\Api\V1\TeacherController;
-use App\Http\Controllers\Api\V1\ExamController;
-use App\Http\Controllers\Api\V1\AlumniController;
-use App\Http\Controllers\Api\V1\JobOfferController;
-use App\Http\Controllers\Api\V1\ParentCRMController;
+use App\Http\Controllers\Api\V1\TenantSettingsController;
+use App\Http\Controllers\Api\V1\TimetableController;
+use App\Http\Controllers\Api\V1\VitrineController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -47,6 +48,9 @@ use Illuminate\Support\Facades\Route;
 
 // ─── Public Routes ───────────────────────────────────────
 Route::prefix('v1')->group(function () {
+
+    // Health check (public for monitoring tools)
+    Route::get('/health', HealthCheckController::class)->name('health');
 
     // Branding config (public)
     Route::get('/config', ConfigController::class)->name('config');
@@ -123,21 +127,21 @@ Route::prefix('v1')
 
         // ─── Resources ───────────────────────────────────
         Route::apiResources([
-            'audit-logs'      => AuditLogController::class,
-            'timetable'       => TimetableController::class,
-            'attendance'      => AttendanceController::class,
+            'audit-logs' => AuditLogController::class,
+            'timetable' => TimetableController::class,
+            'attendance' => AttendanceController::class,
             'staff-attendance' => StaffAttendanceController::class,
-            'lesson-logs'     => LessonLogController::class,
-            'classes'         => SchoolClassController::class,
-            'subjects'        => SubjectController::class,
-            'teachers'        => TeacherController::class,
+            'lesson-logs' => LessonLogController::class,
+            'classes' => SchoolClassController::class,
+            'subjects' => SubjectController::class,
+            'teachers' => TeacherController::class,
         ]);
 
         // Exams & Reports
         Route::apiResource('exams', ExamController::class);
         Route::post('exams/{exam}/results', [ExamController::class, 'enterResults'])->name('exams.results');
         Route::post('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
-        
+
         Route::get('students/{student}/report-card', [AcademicReportController::class, 'generateStudentReport'])->name('students.report-card');
         Route::get('classes/{class}/report-cards', [AcademicReportController::class, 'generateClassReports'])->name('classes.report-cards');
 
@@ -165,7 +169,7 @@ Route::prefix('v1')
         Route::apiResource('inventory', InventoryController::class)->only(['index', 'store', 'show', 'update']);
         Route::post('inventory/{item}/stock', [InventoryController::class, 'updateStock']);
         Route::get('inventory/{item}/transactions', [InventoryController::class, 'transactions']);
-        
+
         Route::get('/tenant/brochure', [AcademicReportController::class, 'generateBrochure'])
             ->name('tenant.brochure');
 
@@ -191,7 +195,7 @@ Route::prefix('v1')
 
         Route::post('/tenant/branding', [TenantSettingsController::class, 'updateBranding'])
             ->name('tenant.branding.update');
-        
+
         Route::post('/tenant/upload-logo', [TenantSettingsController::class, 'uploadLogo'])
             ->name('tenant.upload-logo');
 
@@ -200,7 +204,7 @@ Route::prefix('v1')
 
         Route::post('/staff/check-in-out', [StaffAttendanceController::class, 'checkInOut'])
             ->name('staff.check-in-out');
-        
+
         Route::post('/tenant/location', [TenantSettingsController::class, 'updateLocation'])
             ->name('tenant.location.update');
         Route::get('/proxy/google-places', [TenantSettingsController::class, 'googlePlacesProxy'])
