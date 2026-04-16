@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
+
 use App\Models\Attendance;
 use App\Models\Payment;
 use App\Models\Student;
@@ -20,13 +22,18 @@ class KpiService
      */
     public function getDashboardKpis(?int $academicYearId = null): array
     {
-        return [
-            'enrollment'    => $this->getEnrollmentKpis($academicYearId),
-            'financial'     => $this->getFinancialKpis($academicYearId),
-            'attendance'    => $this->getAttendanceKpis(),
-            'staff'         => $this->getStaffKpis(),
-            'activity'      => $this->getActivityKpis(),
-        ];
+        $tenantId = resolve('current_tenant')->id;
+        $cacheKey = "tenant_{$tenantId}_dashboard_kpis_" . ($academicYearId ?? 'all');
+
+        return Cache::tags(['tenant_' . $tenantId, 'kpis'])->remember($cacheKey, 3600, function () use ($academicYearId) {
+            return [
+                'enrollment'    => $this->getEnrollmentKpis($academicYearId),
+                'financial'     => $this->getFinancialKpis($academicYearId),
+                'attendance'    => $this->getAttendanceKpis(),
+                'staff'         => $this->getStaffKpis(),
+                'activity'      => $this->getActivityKpis(),
+            ];
+        });
     }
 
     /**

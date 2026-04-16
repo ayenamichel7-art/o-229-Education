@@ -15,6 +15,11 @@ services:
     networks:
       - o229-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -41,6 +46,11 @@ services:
     networks:
       - o229-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
     logging:
       driver: "json-file"
       options:
@@ -67,6 +77,11 @@ services:
     networks:
       - o229-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
     logging:
       driver: "json-file"
       options:
@@ -95,6 +110,11 @@ services:
     networks:
       - o229-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -120,6 +140,11 @@ services:
     networks:
       - o229-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -146,6 +171,11 @@ services:
     networks:
       - o229-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
 
   # ─── Laravel Reverb (WebSockets) ────────────────────────
   # ⚠️ Port NOT exposed — proxied through Nginx /ws
@@ -170,6 +200,11 @@ services:
     networks:
       - o229-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
   # ─── MinIO (S3 Compatible Storage) ──────────────────────
   # ⚠️ API port internal only — Console disabled in production
@@ -216,6 +251,8 @@ services:
     container_name: o229-uptime-kuma
     volumes:
       - o229-uptime-kuma-data:/app/data
+    environment:
+      - UPTIME_KUMA_BASE_URL=/monitoring/
     # Port NOT exposed — proxy via Nginx with basic auth
     networks:
       - o229-network

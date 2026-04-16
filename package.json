@@ -1,0 +1,26 @@
+{
+  "name": "o-229",
+  "version": "1.0.0",
+  "description": "> 🎓 Plateforme SaaS Multi-Tenant de Gestion Scolaire",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "gitleaks": "^1.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
+  },
+  "lint-staged": {
+    "frontend/**/*.{js,jsx,ts,tsx}": [
+      "npm --prefix frontend run lint"
+    ],
+    "backend/**/*.php": [
+      "./backend/vendor/bin/pint"
+    ]
+  }
+}

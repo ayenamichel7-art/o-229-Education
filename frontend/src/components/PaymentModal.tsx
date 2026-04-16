@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, X } from 'lucide-react';
+import { Receipt, X, Clock } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useStudentStore } from '../store/useStudentStore';
+import { apiClient } from '../api/apiClient';
 import toast from 'react-hot-toast';
 
 interface PaymentModalProps {
@@ -44,20 +45,38 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
     }
 
     setIsSubmitting(true);
-    const toastId = toast.loading('Enregistrement du paiement...');
+    const toastId = toast.loading(formData.payment_method === 'mobile_money' ? 'Initialisation du paiement mobile...' : 'Enregistrement du paiement...');
     
     try {
-      await recordPayment({
+      // 1. Create the payment record
+      const payment = await recordPayment({
         student_id: Number(formData.student_id),
         amount: Number(formData.amount),
-        amount_paid: Number(formData.amount), // Supposing they pay full immediately in this simple flow
+        amount_paid: formData.payment_method === 'mobile_money' ? 0 : Number(formData.amount),
         type: formData.type,
         payment_method: formData.payment_method,
+        status: formData.payment_method === 'mobile_money' ? 'pending' : 'paid'
       });
-      toast.success('Paiement enregistré avec succès.', { id: toastId });
-      onClose();
+
+      // 2. If Mobile Money, initiate the gateway
+      if (formData.payment_method === 'mobile_money') {
+        const initRes = await apiClient.post('/payments/initiate', {
+          payment_id: payment.id,
+          method: 'mobile_money'
+        });
+        
+        toast.success('Redirection vers le portail de paiement...', { id: toastId });
+        
+        // Redirect to the local gateway (Orange, MTN, Wave etc.)
+        setTimeout(() => {
+          window.location.href = initRes.data.payment_url;
+        }, 1000);
+      } else {
+        toast.success('Paiement enregistré avec succès.', { id: toastId });
+        onClose();
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erreur lors de l\'enregistrement', { id: toastId });
+      toast.error(err.response?.data?.message || 'Erreur lors du traitement', { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -69,7 +88,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
       backgroundColor: 'rgba(15, 23, 42, 0.4)',
       backdropFilter: 'blur(4px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 50,
+      zIndex: 100,
       padding: '1rem'
     }}>
       <div style={{
@@ -86,14 +105,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
           borderBottom: '1px solid #E2E8F0',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center'
         }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1E293B', margin: 0 }}>
-            Enregistrer un paiement
-          </h2>
+          <div>
+             <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1E293B', margin: 0 }}>
+               Nouveau Règlement
+             </h2>
+             <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '4px 0 0' }}>Enregistrez une transaction scolaire</p>
+          </div>
           <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer', color: '#64748B',
-            padding: '4px', borderRadius: '4px'
+            background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#64748B',
+            padding: '6px', borderRadius: '50%', display: 'flex'
           }}>
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -103,11 +125,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
             
             {/* Student Dropdown */}
             <div>
-               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#475569', marginBottom: '0.25rem' }}>
-                  Élève / Étudiant *
+               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  Élève / Étudiant
                 </label>
                 <select name="student_id" value={formData.student_id} onChange={handleChange} required
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.95rem', background: 'white' }}>
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '0.95rem', background: '#F8FAFC' }}>
                   <option value="" disabled>Sélectionner un élève...</option>
                   {students.map(s => (
                     <option key={s.id} value={s.id}>
@@ -119,44 +141,61 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
 
             {/* Amount */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#475569', marginBottom: '0.25rem' }}>
-                Montant Reçu (FCFA) *
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                Montant (FCFA)
               </label>
-              <input required type="number" min="0" step="100" name="amount" value={formData.amount} onChange={handleChange} 
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.95rem' }} 
-                placeholder="Ex: 150000"
-              />
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: '#94A3B8' }}>XOF</span>
+                <input required type="number" min="0" step="100" name="amount" value={formData.amount} onChange={handleChange} 
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '1rem', fontWeight: 600 }} 
+                  placeholder="0.00"
+                />
+              </div>
             </div>
 
             {/* Payment specifics */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#475569', marginBottom: '0.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
                   Type de frais
                 </label>
                 <select name="type" value={formData.type} onChange={handleChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.95rem', background: 'white' }}>
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '0.95rem', background: '#F8FAFC' }}>
                   <option value="tuition">Scolarité</option>
                   <option value="registration">Inscription</option>
-                  <option value="exam">Frais d'Examen</option>
+                  <option value="exam">Examen</option>
                   <option value="transport">Transport</option>
                   <option value="uniform">Uniforme</option>
                   <option value="other">Autre</option>
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#475569', marginBottom: '0.25rem' }}>
-                  Moyen de paiement
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  Méthode
                 </label>
                 <select name="payment_method" value={formData.payment_method} onChange={handleChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.95rem', background: 'white' }}>
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '0.95rem', background: '#F8FAFC' }}>
                   <option value="cash">Espèces</option>
-                  <option value="bank_transfer">Virement Bancaire</option>
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="card">Carte Bancaire</option>
+                  <option value="mobile_money">Mobile Money 📱</option>
+                  <option value="bank_transfer">Virement</option>
+                  <option value="card">Carte</option>
                 </select>
               </div>
             </div>
+
+            {formData.payment_method === 'mobile_money' && (
+              <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '1rem', borderRadius: '12px', marginTop: '0.5rem' }}>
+                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#0369A1', lineHeight: '1.4' }}>
+                   <strong>✓ Recommandation d'optimisation :</strong><br />
+                   Assurez-vous que le compte possède le solde nécessaire (incluant les frais d'opérateur) et que le numéro soit prêt pour la validation USSD.
+                 </p>
+                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <span style={{ fontSize: '10px', background: '#FF6600', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>ORANGE</span>
+                    <span style={{ fontSize: '10px', background: '#FFCC00', color: 'black', padding: '2px 6px', borderRadius: '4px' }}>MTN</span>
+                    <span style={{ fontSize: '10px', background: '#2196F3', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>WAVE</span>
+                 </div>
+              </div>
+            )}
 
           </form>
         </div>
@@ -170,18 +209,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
           borderRadius: '0 0 16px 16px'
         }}>
           <button type="button" onClick={onClose} disabled={isSubmitting} style={{
-            padding: '0.6rem 1.25rem', borderRadius: '8px', border: '1px solid #CBD5E1',
-            background: 'white', color: '#475569', fontWeight: 500, cursor: 'pointer'
+            padding: '0.65rem 1.25rem', borderRadius: '10px', border: '1px solid #E2E8F0',
+            background: 'white', color: '#475569', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem'
           }}>
-            Annuler
+            Fermer
           </button>
           <button type="submit" form="payment-form" disabled={isSubmitting} style={{
-            padding: '0.6rem 1.25rem', borderRadius: '8px', border: 'none',
-            background: 'var(--gradient-primary)', color: 'white', fontWeight: 500, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isSubmitting ? 0.7 : 1
+            padding: '0.65rem 1.5rem', borderRadius: '10px', border: 'none',
+            background: formData.payment_method === 'mobile_money' ? '#0369A1' : 'var(--gradient-primary)', 
+            color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+            display: 'flex', alignItems: 'center', gap: '0.6rem', opacity: isSubmitting ? 0.7 : 1,
+            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
           }}>
-            <Receipt size={18} />
-            {isSubmitting ? 'Traitement...' : 'Encaisser'}
+            {formData.payment_method === 'mobile_money' ? <Clock size={18} /> : <Receipt size={18} />}
+            {isSubmitting ? 'Traitement...' : (formData.payment_method === 'mobile_money' ? 'Payer par Mobile Money' : 'Valider l\'encaissement')}
           </button>
         </div>
 

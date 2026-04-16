@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Plus, ChevronDown, Eye, Edit, Trash2 } from 'lucide-react';
+import { Users, Search, Plus, ChevronDown, Edit, Trash2, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStudentStore, Student } from '../store/useStudentStore';
 import { useAuth } from '../store/useAuth';
 import { StudentModal } from '../components/StudentModal';
+import { BulletinModal } from '../components/BulletinModal';
 import toast from 'react-hot-toast';
-
-
 
 export const Students: React.FC = () => {
   const { t } = useTranslation();
@@ -16,6 +15,8 @@ export const Students: React.FC = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  
+  const [bulletinStudent, setBulletinStudent] = useState<{id: number, name: string} | null>(null);
 
   // Check if user has admin/management roles to show action buttons
   const isManager = user?.roles?.some(r => ['super-admin', 'admin-school', 'director'].includes(r));
@@ -124,20 +125,26 @@ export const Students: React.FC = () => {
                   </td>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button title={t('common.view')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}><Eye size={18} /></button>
+                      <button 
+                         onClick={() => setBulletinStudent({ id: student.id, name: `${student.first_name} ${student.last_name}` })}
+                         title="Bulletin" 
+                         style={{ background: 'rgba(59,130,246,0.1)', border: 'none', cursor: 'pointer', color: '#3b82f6', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 600 }}
+                      >
+                         <FileText size={16} /> Bulletin
+                      </button>
                       {isManager && (
                         <>
                           <button 
                             onClick={() => { setEditingStudent(student); setIsModalOpen(true); }}
                             title={t('common.edit')} 
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b' }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', padding: '6px' }}
                           >
                             <Edit size={18} />
                           </button>
                           <button 
                             onClick={() => handleDelete(student.id)}
                             title={t('common.delete')} 
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '6px' }}
                           >
                             <Trash2 size={18} />
                           </button>
@@ -156,6 +163,13 @@ export const Students: React.FC = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         student={editingStudent} 
+      />
+
+      <BulletinModal
+        isOpen={!!bulletinStudent}
+        onClose={() => setBulletinStudent(null)}
+        studentId={bulletinStudent?.id || 0}
+        studentName={bulletinStudent?.name || ''}
       />
     </div>
   );

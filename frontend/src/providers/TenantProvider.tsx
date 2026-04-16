@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient } from '../api/apiClient';
+import { TenantErrorFallback } from '../components/TenantErrorFallback';
 
 interface TenantConfig {
   name: string;
   tagline: string | null;
   logoUrl: string | null;
+  sealUrl: string | null;
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
@@ -15,6 +17,13 @@ interface TenantConfig {
     longitude: number | null;
     maps_url: string | null;
     is_verified: boolean;
+  };
+  settings?: {
+    report_card?: {
+      primary_color?: string;
+      header_style?: string;
+    };
+    features?: Record<string, boolean>;
   };
 }
 
@@ -79,9 +88,12 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchTenantConfig();
   }, []);
 
+  if (error && !isLoading) {
+    return <TenantErrorFallback error={error} />;
+  }
+
   return (
     <TenantContext.Provider value={{ tenant, isLoading, error }}>
-      {/* If loading finishes and no tenant found, we could render a Fallback/404 Page */}
       {children}
     </TenantContext.Provider>
   );

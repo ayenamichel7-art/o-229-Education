@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\FormTemplate;
 use App\Models\FormSubmission;
+use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class FormTemplateController extends Controller
 {
@@ -83,16 +85,42 @@ class FormTemplateController extends Controller
         }
         
         $submission = FormSubmission::create([
-            'tenant_id' => resolve('current_tenant_id'),
             'form_template_id' => $template->id,
             'data' => $request->input('fields', $request->all()),
             'status' => 'pending',
             'ip_address' => $request->ip(),
         ]);
 
+        $paymentUrl = null;
+        if ($template->requires_payment && $template->registration_fee > 0) {
+            // Create a temporary payment for this submission
+            $payment = Payment::create([
+                'academic_year_id' => $template->academic_year_id,
+                'amount'           => $template->registration_fee,
+                'amount_paid'      => 0,
+                'type'             => 'registration',
+                'status'           => 'pending',
+                'payment_method'   => 'mobile_money',
+                'notes'            => "Frais d'inscription via formulaire: " . $template->name,
+                'reference_number' => 'REG-' . strtoupper(Str::random(8)),
+            ]);
+
+            // Track submission in payment metadata or similar
+            // For now, we generate the gateway link
+            $transactionId = 'TXN-REG-' . strtoupper(Str::random(10));
+            $paymentUrl = "https://checkout.local-gateway.africa/pay/" . $transactionId;
+
+            $payment->update([
+                'external_id' => $transactionId,
+                'payment_url' => $paymentUrl
+            ]);
+        }
+
         return response()->json([
-            'message' => 'Submission received successfully.',
-            'data' => $submission
+            'message' => 'Candidature reçue avec succès.',
+            'data' => $submission,
+            'payment_url' => $paymentUrl,
+            'requires_payment' => (bool)$paymentUrl
         ], 201);
     }
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-// import { apiClient } from '../api/apiClient';
+import { apiClient } from '../api/apiClient';
 
 interface FormField {
   id: number;
@@ -82,25 +82,21 @@ export const AdmissionForm: React.FC = () => {
     setSuccessMsg('');
 
     try {
-      /*
-      // FormData is required for file uploads
-      const payload = new FormData();
-      payload.append('form_template_id', template!.id.toString());
-      
-      Object.keys(formData).forEach(key => {
-        payload.append(`data[${key}]`, formData[key]);
+      const response = await apiClient.post(`/form-templates/${template!.id}/submit`, {
+        fields: formData
       });
+      
+      const { payment_url, requires_payment } = response.data;
 
-      await apiClient.post('/form-submissions', payload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      */
-      
-      // Simulating API latency
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setSuccessMsg('Votre dossier a été soumis avec succès ! Nous vous contacterons sous peu.');
-      setFormData({}); // Reset form
+      if (requires_payment && payment_url) {
+        setSuccessMsg("Candidature soumise ! Vous allez être redirigé vers le paiement des frais d'inscription...");
+        setTimeout(() => {
+          window.location.href = payment_url;
+        }, 2000);
+      } else {
+        setSuccessMsg('Votre dossier a été soumis avec succès ! Nous vous contacterons sous peu.');
+        setFormData({}); // Reset form
+      }
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Une erreur est survenue lors de la soumission.');
     } finally {

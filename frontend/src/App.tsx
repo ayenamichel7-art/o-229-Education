@@ -16,6 +16,17 @@ import PageBuilder from './pages/builder/PageBuilder';
 import FormBuilder from './pages/builder/FormBuilder';
 import { MobileAppPage } from './pages/MobileApp';
 import { SettingsPage } from './pages/Settings';
+import { Timetable } from './pages/Timetable';
+import { Pedagogy } from './pages/Pedagogy';
+import { AttendancePage } from './pages/Attendance';
+import { StaffMonitoring } from './pages/StaffMonitoring';
+import { Exams } from './pages/Exams';
+import { Communication } from './pages/Communication';
+import { DisciplinePage } from './pages/Discipline';
+import { AncillaryServices } from './pages/Services';
+import { InventoryPage } from './pages/Inventory';
+import { Alumni } from './pages/Alumni';
+import { ParentCRM } from './pages/ParentCRM';
 
 function App() {
   return (
@@ -34,15 +45,27 @@ function App() {
           <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="students" element={<Students />} />
+            <Route path="communication" element={<Communication />} />
+            <Route path="discipline" element={<DisciplinePage />} />
+            <Route path="services" element={<AncillaryServices />} />
+            <Route path="inventory" element={<InventoryPage />} />
             <Route path="finance" element={<Finance />} />
             <Route path="reports" element={<Reports />} />
             <Route path="audit" element={<AuditTrail />} />
-            
+            <Route path="timetable" element={<Timetable />} />
+            <Route path="pedagogy" element={<Pedagogy />} />
+            <Route path="attendance" element={<AttendancePage />} />
+            <Route path="staff-monitoring" element={<StaffMonitoring />} />
+            <Route path="exams" element={<Exams />} />
             {/* Builders (Elementor & Fluent style) */}
             <Route path="vitrine-builder" element={<PageBuilder />} />
             <Route path="form-builder" element={<FormBuilder />} />
             <Route path="mobile-app" element={<MobileAppPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            {/* Nouveau Module : Insertion Professionnelle */}
+            <Route path="alumni" element={<Alumni />} />
+            {/* Nouveau Module : CRM Parents */}
+            <Route path="crm-parents" element={<ParentCRM />} />
           </Route>
         </Routes>
       </BrowserRouter>

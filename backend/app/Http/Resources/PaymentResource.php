@@ -26,6 +26,8 @@ class PaymentResource extends JsonResource
             'type'             => $this->type,
             'status'           => $this->status,
             'is_overdue'       => $this->isOverdue(),
+            'payment_url'      => $this->payment_url,
+            'external_id'      => $this->external_id,
             'notes'            => $this->notes,
             'created_at'       => $this->created_at?->toISOString(),
         ];

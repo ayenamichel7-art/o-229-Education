@@ -90,7 +90,13 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment): JsonResponse
     {
-        $payment->delete();
-        return response()->json(['message' => 'Paiement supprimé.']);
+        // For accounting integrity, we don't just delete; we mark as cancelled first
+        $payment->update(['status' => 'cancelled']);
+        $payment->delete(); // This is a SoftDelete now
+        
+        return response()->json([
+            'message' => 'Paiement annulé et archivé avec succès.',
+            'status'  => 'success'
+        ]);
     }
 }

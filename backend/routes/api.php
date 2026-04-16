@@ -10,8 +10,20 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\VitrineController;
+use App\Http\Controllers\Api\V1\TimetableController;
+use App\Http\Controllers\Api\V1\AttendanceController;
+use App\Http\Controllers\Api\V1\StaffAttendanceController;
+use App\Http\Controllers\Api\V1\PaymentGatewayController;
+use App\Http\Controllers\Api\V1\LessonLogController;
+use App\Http\Controllers\Api\V1\AcademicReportController;
 use App\Http\Controllers\Api\V1\TenantSettingsController;
-// use App\Http\Middleware\IdentifyTenant; // Suppressed for stancl/tenancy
+use App\Http\Controllers\Api\V1\SchoolClassController;
+use App\Http\Controllers\Api\V1\SubjectController;
+use App\Http\Controllers\Api\V1\TeacherController;
+use App\Http\Controllers\Api\V1\ExamController;
+use App\Http\Controllers\Api\V1\AlumniController;
+use App\Http\Controllers\Api\V1\JobOfferController;
+use App\Http\Controllers\Api\V1\ParentCRMController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,6 +35,7 @@ use Illuminate\Support\Facades\Route;
 |   - /api/v1/config         → Tenant branding
 |   - /api/v1/auth/login     → Login
 |   - /api/v1/vitrine        → Landing pages
+|   - /api/v1/payments/webhook → Payment gateway webhooks
 |
 | Protected routes (auth + tenant):
 |   - All CRUD endpoints
@@ -43,10 +56,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/vitrine', [VitrineController::class, 'index'])->name('vitrine.index');
         Route::get('/vitrine/{slug}', [VitrineController::class, 'show'])->name('vitrine.show');
 
-        // Registration Forms
+        // Registration Forms (public, with rate limiting + anti-spam)
         Route::get('/registration-forms', [FormTemplateController::class, 'index'])->name('forms.index');
         Route::get('/registration-forms/{id}', [FormTemplateController::class, 'show'])->name('forms.show');
-        Route::post('/registration-forms/{id}/submit', [FormTemplateController::class, 'submit'])->name('forms.submit');
+        Route::post('/registration-forms/{id}/submit', [FormTemplateController::class, 'submit'])
+            ->middleware('throttle:10,1') // Max 10 submissions per minute per IP
+            ->name('forms.submit');
     });
 
     // Auth routes
@@ -55,6 +70,12 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:5,1') // Max 5 attempts per minute per IP
             ->name('auth.login');
     });
+
+    // ─── Payment Webhooks (Public — verified by HMAC signature) ──
+    // These MUST be outside auth:sanctum since they are called by external payment gateways
+    Route::post('/payments/webhook', [PaymentGatewayController::class, 'webhook'])
+        ->middleware('throttle:60,1') // Max 60 webhook calls per minute per IP
+        ->name('payments.webhook');
 });
 
 // ─── Protected Routes (Auth + Tenant Scope) ──────────────
@@ -100,19 +121,88 @@ Route::prefix('v1')
             Route::get('/types', [ReportController::class, 'types'])->name('reports.types');
         });
 
-        // ─── Activity Logs (Audit Trail) ─────────────────
-        Route::prefix('audit-logs')->group(function () {
-            Route::get('/', [AuditLogController::class, 'index'])->name('audit-logs.index');
-            Route::get('/stats', [AuditLogController::class, 'stats'])->name('audit-logs.stats');
-            Route::get('/{id}', [AuditLogController::class, 'show'])->name('audit-logs.show');
-        });
+        // ─── Resources ───────────────────────────────────
+        Route::apiResources([
+            'audit-logs'      => AuditLogController::class,
+            'timetable'       => TimetableController::class,
+            'attendance'      => AttendanceController::class,
+            'staff-attendance' => StaffAttendanceController::class,
+            'lesson-logs'     => LessonLogController::class,
+            'classes'         => SchoolClassController::class,
+            'subjects'        => SubjectController::class,
+            'teachers'        => TeacherController::class,
+        ]);
+
+        // Exams & Reports
+        Route::apiResource('exams', ExamController::class);
+        Route::post('exams/{exam}/results', [ExamController::class, 'enterResults'])->name('exams.results');
+        Route::post('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
+        
+        Route::get('students/{student}/report-card', [AcademicReportController::class, 'generateStudentReport'])->name('students.report-card');
+        Route::get('classes/{class}/report-cards', [AcademicReportController::class, 'generateClassReports'])->name('classes.report-cards');
+
+        // Communication (rate limited to prevent SMS spam)
+        Route::apiResource('communications', CommunicationController::class)->only(['index', 'store', 'show', 'destroy']);
+        Route::post('communications', [CommunicationController::class, 'store'])
+            ->middleware('throttle:10,1') // Max 10 communications per minute
+            ->name('communications.store');
+
+        // Discipline
+        Route::apiResource('discipline', DisciplineController::class)->only(['index', 'store']);
+
+        // Transport & Canteen
+        Route::get('transport', [TransportController::class, 'index']);
+        Route::post('transport', [TransportController::class, 'store']);
+        Route::get('transport/subscriptions', [TransportController::class, 'subscriptions']);
+        Route::post('transport/subscribe', [TransportController::class, 'subscribe']);
+
+        Route::get('canteen', [CanteenController::class, 'index']);
+        Route::post('canteen', [CanteenController::class, 'store']);
+        Route::get('canteen/subscriptions', [CanteenController::class, 'subscriptions']);
+        Route::post('canteen/subscribe', [CanteenController::class, 'subscribe']);
+
+        // Inventory
+        Route::apiResource('inventory', InventoryController::class)->only(['index', 'store', 'show', 'update']);
+        Route::post('inventory/{item}/stock', [InventoryController::class, 'updateStock']);
+        Route::get('inventory/{item}/transactions', [InventoryController::class, 'transactions']);
+        
+        Route::get('/tenant/brochure', [AcademicReportController::class, 'generateBrochure'])
+            ->name('tenant.brochure');
+
+        // ─── Alumni & Professional Integration ───────────
+        Route::get('alumni', [AlumniController::class, 'index']);
+        Route::post('alumni', [AlumniController::class, 'store']);
+        Route::get('job-offers', [JobOfferController::class, 'index']);
+        Route::post('job-offers', [JobOfferController::class, 'store']);
+
+        // ─── Parent CRM ─────────────────────────────────────
+        Route::get('crm-parents', [ParentCRMController::class, 'index']);
+        Route::get('crm-parents/{student}/interactions', [ParentCRMController::class, 'showInteractions']);
+        Route::post('crm-parents/{student}/interactions', [ParentCRMController::class, 'storeInteraction']);
+
+        // ─── Local Payments (initiation only — webhook is public) ─
+        Route::post('/payments/initiate', [PaymentGatewayController::class, 'initiate'])
+            ->middleware('throttle:20,1') // Rate limit payment initiation
+            ->name('payments.initiate');
 
         // ─── Tenant Settings ────────────────────────────
+        Route::post('/tenant/report-settings', [TenantSettingsController::class, 'updateReportSettings'])
+            ->name('tenant.report-settings.update');
+
+        Route::post('/tenant/branding', [TenantSettingsController::class, 'updateBranding'])
+            ->name('tenant.branding.update');
+        
+        Route::post('/tenant/upload-logo', [TenantSettingsController::class, 'uploadLogo'])
+            ->name('tenant.upload-logo');
+
+        Route::post('/tenant/upload-seal', [TenantSettingsController::class, 'uploadSeal'])
+            ->name('tenant.upload-seal');
+
+        Route::post('/staff/check-in-out', [StaffAttendanceController::class, 'checkInOut'])
+            ->name('staff.check-in-out');
+        
         Route::post('/tenant/location', [TenantSettingsController::class, 'updateLocation'])
             ->name('tenant.location.update');
         Route::get('/proxy/google-places', [TenantSettingsController::class, 'googlePlacesProxy'])
             ->name('proxy.google-places');
     });
-
-
-

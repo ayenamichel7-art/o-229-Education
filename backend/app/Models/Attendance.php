@@ -13,6 +13,7 @@ class Attendance extends Model
     protected $fillable = [
         'student_id',
         'class_id',
+        'timetable_entry_id',
         'date',
         'status',  // present, absent, late, excused
         'remarks',
@@ -31,6 +32,11 @@ class Attendance extends Model
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    public function timetableEntry(): BelongsTo
+    {
+        return $this->belongsTo(TimetableEntry::class);
     }
 
     public function recorder(): BelongsTo

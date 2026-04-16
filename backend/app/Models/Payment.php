@@ -6,10 +6,11 @@ use App\Models\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use HasFactory, Auditable;
+    use HasFactory, Auditable, SoftDeletes;
 
     protected $fillable = [
         'student_id',
@@ -20,6 +21,9 @@ class Payment extends Model
         'paid_at',
         'payment_method', // cash, bank_transfer, mobile_money, card
         'reference_number',
+        'external_id',
+        'gateway_response',
+        'payment_url',
         'receipt_url',
         'type',    // tuition, registration, exam, transport, uniform, other
         'status',  // pending, partial, paid, overdue, cancelled

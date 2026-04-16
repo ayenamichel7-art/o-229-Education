@@ -1,0 +1,44 @@
+name: "CodeQL Security Scan"
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    # Les PR vérifient que le nouveau code ne casse pas la sécurité
+    branches: [ "main", "develop" ]
+  schedule:
+    # Lance un scan de profondeur une fois par semaine (dimanche à minuit)
+    - cron: '0 0 * * 0'
+
+jobs:
+  analyze:
+    name: Analyze Vulnerabilities
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Langages utilisés dans le projet (Backend = PHP, Javascript/TypeScript = Frontend)
+        language: [ 'javascript-typescript' ]
+        # Note: CodeQL officiel ne gère pas nativement PHP de manière robuste sans workflow d'action complexe,
+        # Mais les alertes de dépendances dépendabot et composer audit (déjà dans le ci.yml) couvrent le PHP.
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # L'analyse approfondie "security-extended" active plus de règles
+        queries: security-extended,security-and-quality
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"

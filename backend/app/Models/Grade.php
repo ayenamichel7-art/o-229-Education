@@ -13,6 +13,7 @@ class Grade extends Model
 
     protected $fillable = [
         'student_id',
+        'exam_id',
         'subject_id',
         'class_id',
         'academic_year_id',
@@ -48,6 +49,11 @@ class Grade extends Model
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function exam(): BelongsTo
+    {
+        return $this->belongsTo(Exam::class);
     }
 
     /**

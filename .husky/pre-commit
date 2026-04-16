@@ -1,0 +1,2 @@
+npx lint-staged
+if command -v gitleaks >/dev/null 2>&1; then gitleaks protect -v --staged; else echo "⚠️ Gitleaks not found. Skipping."; fi

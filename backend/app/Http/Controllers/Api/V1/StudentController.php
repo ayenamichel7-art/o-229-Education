@@ -8,6 +8,7 @@ use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Str;
 
 class StudentController extends Controller
 {
@@ -66,15 +67,20 @@ class StudentController extends Controller
             'academic_year_id'     => 'nullable|exists:academic_years,id',
         ]);
 
-        // Create user account
+        // Create user account with a secure random temporary password
+        $temporaryPassword = Str::random(12);
         $user = \App\Models\User::create([
             'first_name' => $validated['first_name'],
             'last_name'  => $validated['last_name'],
             'email'      => $validated['email'],
             'phone'      => $validated['phone'] ?? null,
-            'password'   => bcrypt('changeme123'), // Temporary password
+            'password'   => bcrypt($temporaryPassword),
+            'must_change_password' => true, // Force password change on first login
         ]);
         $user->assignRole('student');
+
+        // TODO: Send temporary password to guardian via email/SMS
+        // Example: Mail::to($validated['guardian_email'])->send(new StudentAccountCreated($user, $temporaryPassword));
 
         // Create student profile
         $student = Student::create([

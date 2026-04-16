@@ -101,6 +101,24 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
+      {/* Academic Bulletins Section */}
+      <div className="glass-card" style={{ padding: '2rem', marginBottom: '2.5rem', background: 'white', borderLeft: '4px solid #10B981' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.5rem' }}>Extraction des Bulletins Académiques</h2>
+            <p style={{ color: '#64748B', fontSize: '0.9rem' }}>Générez les relevés de notes officiels pour toute une classe ou pour un élève spécifique.</p>
+          </div>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => toast('Fonctionnalité d\'extraction groupée bientôt disponible !')}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#10B981' }}
+          >
+            <Download size={18} />
+            Extraction Groupée (PDF)
+          </button>
+        </div>
+      </div>
+
       {/* Filtre */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
         {[

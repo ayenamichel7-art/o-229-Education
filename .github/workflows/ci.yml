@@ -4,21 +4,52 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  workflow_dispatch: # Allows manual triggering
+
+# Cancel in-progress runs on the same branch for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PHP_VERSION: '8.4'
   NODE_VERSION: '20'
 
 jobs:
-  # ─── Backend Tests & Security ─────────────────────────
-  backend:
-    name: Backend (Laravel)
+  # ─── 1. Code Security & Formatting ──────────────────────
+  security_and_format:
+    name: Security & Format Checks
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks Secret Scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Check .env files are not committed
+        run: |
+          if git ls-files --error-unmatch .env 2>/dev/null || git ls-files --error-unmatch backend/.env 2>/dev/null; then
+            echo "::error::.env files are tracked by Git! Remove them immediately."
+            exit 1
+          fi
+          echo "✅ No .env files tracked"
+
+  # ─── 2. Backend Analysis & Testing (Laravel) ────────────
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    needs: [security_and_format]
     defaults:
       run:
         working-directory: backend
-
+    
+    # Required services for tests
     services:
       postgres:
         image: postgres:16-alpine
@@ -28,21 +59,12 @@ jobs:
           POSTGRES_PASSWORD: testing
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       redis:
         image: redis:7-alpine
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -52,23 +74,36 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: pdo_pgsql, redis, mbstring, zip, gd, intl, bcmath
-          coverage: xdebug
+          coverage: pcov
+          tools: composer:v2
 
-      - name: Install Composer Dependencies
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Copy .env
-        run: cp .env.example .env
+      - name: Security Check Dependencies
+        run: composer audit
 
-      - name: Generate Application Key
-        run: php artisan key:generate
+      - name: Prepare Laravel Data
+        run: |
+          cp .env.example .env
+          php artisan key:generate
 
-      - name: Run PHPStan (Static Analysis)
+      - name: Static Analysis (PHPStan)
         run: vendor/bin/phpstan analyse --memory-limit=512M
         continue-on-error: true
 
-      - name: Run Pest Tests
-        run: vendor/bin/pest --parallel
+      - name: Run Tests (Pest) with Coverage
         env:
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
@@ -77,14 +112,13 @@ jobs:
           DB_USERNAME: postgres
           DB_PASSWORD: testing
           REDIS_HOST: 127.0.0.1
+        run: vendor/bin/pest --parallel --coverage
 
-      - name: Composer Security Audit
-        run: composer audit
-
-  # ─── Frontend Lint & Build ────────────────────────────
+  # ─── 3. Frontend Linting & Build (React) ────────────────
   frontend:
-    name: Frontend (React)
+    name: Frontend CI
     runs-on: ubuntu-latest
+    needs: [security_and_format]
     defaults:
       run:
         working-directory: frontend
@@ -102,39 +136,41 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: TypeScript Check
+      - name: NPM Security Audit (Block on Critical/High)
+        run: npm audit --audit-level=high
+
+      - name: TypeScript Validation
         run: npx tsc --noEmit
 
       - name: ESLint Check
         run: npm run lint
         continue-on-error: true
 
-      - name: Build Production Bundle
+      - name: Build Production Assets
         run: npm run build
 
-      - name: NPM Security Audit
-        run: npm audit --production
-        continue-on-error: true
-
-  # ─── Security Scanning ────────────────────────────────
-  security:
-    name: Security Scan
+  # ─── 4. Docker Images Integrity Check ───────────────────
+  docker_check:
+    name: Docker Build Validation
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Docker Compose Build
+        run: docker-compose build --no-cache
 
+  # ─── 5. Continuous Deployment (Template) ────────────────
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [docker_check]
+    # Only run CD on the main branch upon success
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for secrets in code
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-      - name: Check .env files are not committed
+      - name: Deploy Placeholder
         run: |
-          if git ls-files --error-unmatch .env 2>/dev/null || git ls-files --error-unmatch backend/.env 2>/dev/null; then
-            echo "::error::.env files are tracked by Git! Remove them immediately."
-            exit 1
-          fi
-          echo "✅ No .env files tracked"
+          echo "🚀 Deploying to Production Servers..."
+          echo "TODO: Add SSH/Deployer/Ansible commands here"
+          echo "✅ Deployment Successful!"

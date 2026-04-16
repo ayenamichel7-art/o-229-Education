@@ -69,4 +69,4 @@ backend/fluentform-export.json
 *.key
 *.crt
 *.p12
-*.pfx
+*.pfxnode_modules/

@@ -103,14 +103,28 @@ export const Dashboard: React.FC = () => {
           <h1 style={{ color: 'var(--surface-900)', fontSize: '2rem', marginBottom: '0.25rem' }}>{t('dashboard.header_title')}</h1>
           <p style={{ color: 'var(--text-muted)' }}>{t('dashboard.header_subtitle', { name: tenant?.name || t('common.school') })}</p>
         </div>
-        <button 
-          onClick={handleDownloadReport} 
-          disabled={isDownloading} 
-          className="btn" 
-          style={{ background: 'white', border: '1px solid var(--surface-200)', boxShadow: 'var(--shadow-sm)', color: 'var(--primary)' }}
-        >
-          <Download size={18} /> {isDownloading ? t('common.generate') : t('common.download_report')}
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {/* Uptime Kuma System Status Link */}
+          <a 
+            href="/monitoring/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn" 
+            style={{ background: 'white', border: '1px solid #10B981', boxShadow: 'var(--shadow-sm)', color: '#065F46', textDecoration: 'none', padding: '0.5rem 1rem' }}
+          >
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block', boxShadow: '0 0 6px #10B981', marginRight: '8px', animation: 'pulse 2s infinite' }}></span>
+            Statut Serveur (SLA)
+          </a>
+
+          <button 
+            onClick={handleDownloadReport} 
+            disabled={isDownloading} 
+            className="btn" 
+            style={{ background: 'white', border: '1px solid var(--surface-200)', boxShadow: 'var(--shadow-sm)', color: 'var(--primary)', padding: '0.5rem 1rem' }}
+          >
+            <Download size={18} /> {isDownloading ? t('common.generate') : t('common.download_report')}
+          </button>
+        </div>
       </header>
 
       {/* Stats Cards */}

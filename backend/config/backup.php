@@ -154,6 +154,7 @@ return [
             'disks' => [
                 'local',
                 'minio',
+                's3', // Cloudflare R2 / AWS External Cloud Object Storage
             ],
 
             /*
@@ -225,7 +226,7 @@ return [
         'notifiable' => \Spatie\Backup\Notifications\Notifiable::class,
 
         'mail' => [
-            'to' => env('MAIL_USERNAME'),
+            'to' => env('MAIL_NOTIFICATION_RECIPIENT', 'admin@o-229.com'),
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
