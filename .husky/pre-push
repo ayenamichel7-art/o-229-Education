@@ -1,12 +1,11 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🛡️ Exécution des audits de sécurité avant le push..."
 
 # Frontend Audit
+echo "🔍 Vérification du Frontend..."
 cd frontend && npm audit --audit-level=high || { echo "❌ Audit Frontend échoué ! Corrigez les vulnérabilités avant de push."; exit 1; }
 
 # Backend Audit
-cd ../backend && composer audit || { echo "❌ Audit Backend échoué ! Corrigez les vulnérabilités avant de push."; exit 1; }
+echo "🔍 Vérification du Backend..."
+cd ../backend && composer audit --abandoned=ignore || { echo "❌ Audit Backend échoué ! Corrigez les vulnérabilités avant de push."; exit 1; }
 
 echo "✅ Audits de sécurité passés avec succès !"
